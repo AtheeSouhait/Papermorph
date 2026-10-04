@@ -29,8 +29,9 @@ Principles that held up over a whole book:
 
 - **Open on the subject.** When a beat clears the picture, the new topic (expression, diagram, question) appears right away; labels and steps then follow the words. The engine moves an opening group forward if nothing appears in the first 0.8 s, but design for it. Normal transitions and short pauses for thought are fine; the picture need not move all the time.
 - **One new thing at a time.** Don't introduce several objects, colours and texts at once.
+- **Balance explanation and decoration.** Favour objects and camera moves that carry the idea (the thing that moves, the reference it moves against, the cut that changes the point of view). Some atmosphere is welcome; keep it light so it never crowds the concept, distracts, or costs smooth playback. Judge each scene as a whole: trim extras (a bystander, dense scenery, stacked parallax layers, a flourish move) rather than strip it bare.
 - **Same colour, same meaning** within a chapter (and, where it fits, across the book).
-- **Be exact.** Number lines, grids and areas are to scale; a deliberately enlarged drawing says "drawn larger" on screen. Approximations are written as approximations (≈ 4.47…, never = 4.47).
+- **Be exact where it matters.** Number lines, grids and areas are to scale. Illustrative scenes (planets, people on Earth) need only be clear to the reader; add a scale note only when the size could mislead. Approximations are written as approximations (≈ 4.47…, never = 4.47).
 - **Teach the chapter's scope.** If the book jumps ahead or uses something not yet taught, leave it out or say so.
 - **Show the common mistake** where one exists (e.g. squaring the coefficient too), visually crossed out, then the right way.
 

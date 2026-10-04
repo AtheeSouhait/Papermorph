@@ -890,6 +890,14 @@ function camera(p, D, { box, x = 800, y = 450, z, r = 0, bg = COL.board } = {}) 
       const s = at(t), a = -s.r * Math.PI / 180, ux = (wx - s.x) * s.z, uy = (wy - s.y) * s.z;
       return [bx + bw / 2 + ux * Math.cos(a) - uy * Math.sin(a), by + bh / 2 + ux * Math.sin(a) + uy * Math.cos(a)];
     },
+    // Put a screen-space label (text, anchor middle, outside the camera) over world point (wx, wy) at time t, kept
+    // inside the frame or box by margin m; it fades out once the point itself leaves. Fade it in with a wrapper group.
+    track(el, wx, wy, t, m = 24) {
+      const [sx, sy] = cam.screen(wx, wy, t), str = el.textContent;
+      if (el._tw?.[0] !== str) el._tw = [str, el.getComputedTextLength() / 2];
+      const h = el._tw[1], away = Math.max(bx - sx, sx - bx - bw, 0);
+      put(el, { x: Math.min(bx + bw - m - h, Math.max(bx + m + h, sx)), y: sy, o: Math.max(0, 1 - away / 80) });
+    },
   };
   clockRun(apply, D);
   return cam;

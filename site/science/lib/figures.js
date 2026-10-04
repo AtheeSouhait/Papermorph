@@ -238,12 +238,6 @@ function phTree(p, { x = 0, y = 0, s = 1, o = 1, leaf = PH.leaf, kind = 0 } = {}
   });
   return g;
 }
-function phBush(p, { x = 0, y = 0, s = 1, leaf = PH.leaf } = {}) {
-  const g = G(p, { x, y, s });
-  const rects = [[-34, -30, 68, 30], [-20, -44, 40, 16]];
-  phMerge(g, rects, dk(leaf, .1), c => { phPixels(c, -34, -44, 34, 0, dk(leaf, .1), 10, 5); mk('rect', { x: 12, y: -44, width: 30, height: 44, fill: dk(leaf, .3), opacity: .6 }, c); });
-  return g;
-}
 function phLamp(p, { x = 0, y = 0, s = 1 } = {}) {
   const g = G(p, { x, y, s });
   phPoly(g, [[34, -213], [56, -213], [92, 0], [0, 0]], PH.light, 0).setAttribute('opacity', .06);
@@ -283,12 +277,9 @@ function phHills(p, { y, amp = 40, W = ROAD.W, x0, x1, fill, seed = 1, step = 40
 // can run for any distance; far hills are parallax layers. Returns the layers to add things to, back to front:
 // scenery (wraps; for fixed things that should repeat), side (people on the pavement), vehicles, front (labels).
 const ROAD = { top: 478, far: 566, mid: 640, near: 726, bot: 748, side: 474, W: 2400 };
-function phRoad(cam, { trees = [60, 540, 1020, 1500, 1980], lamps = [300, 1500], hills = true, x0 = -1600, x1 = 5600 } = {}) {
+function phRoad(cam, { trees = [300, 1100, 1900], lamps = [1500], hills = true, x0 = -1600, x1 = 5600 } = {}) {
   const W = ROAD.W, rep = xs => xs.flatMap(v => { const out = []; for (let x = v + Math.floor((x0 - v) / W) * W; x < x1; x += W) out.push(x); return out; });
-  if (hills) {
-    phHills(cam.layer(.25, W), { y: 330, amp: 50, x0, x1, fill: PH.hill1, seed: 1 });
-    phHills(cam.layer(.5, W), { y: 400, amp: 34, x0, x1, fill: PH.hill2, seed: 4 });
-  }
+  if (hills) phHills(cam.layer(.3, W), { y: 380, amp: 44, x0, x1, fill: PH.hill1, seed: 1 });
   const scenery = cam.layer(1, W);
   phBlock(scenery, x0, 452, x1 - x0, 26, PH.walk, { top: 4, ol: 0 });
   path(scenery, rep(Array.from({ length: 40 }, (_, i) => i * 60)).map(x => `M${x} 457V478`).join(''), { stroke: dk(PH.walk, .2), 'stroke-width': 2 });
