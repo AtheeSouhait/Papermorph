@@ -17,11 +17,10 @@
 const CHAPTER = { number: 9, title: 'Motion · Part 1: Motion and Relative Motion', minutes: 4, language: 'en' };
 
 /* ---------- chapter helpers ---------- */
-const V = 150;                                   // 30 mph on screen, in px per second (same scale in every road beat)
+const V = 150;                                   // 30 mph on screen, in world px per second (same scale in every road beat)
 const MPH = v => Math.round(Math.abs(v) / V * 30);
 const speedStr = rel => { const n = MPH(rel); return n === 0 ? '0 mph' : rel > 0 ? `${n} mph →` : `← ${n} mph`; };
 const Q_CARD = { x: 96, y: 586, w: 1408, cls: 'band' };   // band card lifted above the usual BAND, for longer feedback
-const smooth = q => q <= 0 ? 0 : q >= 1 ? 1 : q * q * (3 - 2 * q);
 const txt = (p, s, x, y, t0, { size = 32, fill = COL.chalk, anchor = 'middle', weight = 600 } = {}) => { const e = T(p, s, { x, y, size, fill, anchor, weight, o: 0 }); show(e, t0); return e; };
 // One line with coloured runs: [[text, colour?], …].
 function runs(p, parts, { x, y, size = 40, anchor = 'middle', weight = 600, o = 0 }) {
@@ -29,56 +28,82 @@ function runs(p, parts, { x, y, size = 40, anchor = 'middle', weight = 600, o = 
   parts.forEach(([s, c]) => { const sp = mk('tspan', { fill: c || COL.chalk }, t); sp.textContent = s; });
   return t;
 }
-// Run a world clock through the whole beat: f(τ) with τ in seconds from the beat start.
-const clockRun = (f, D) => { f(0); prog(q => f(q * D), 0, D, lin); };
 function arrowPath(x1, y, x2) { const d = Math.sign(x2 - x1); return `M${x1} ${y}H${x2}M${x2 - 16 * d} ${y - 11}L${x2} ${y}L${x2 - 16 * d} ${y + 11}`; }
-// "Measured from: …" tag at the top left.
-function fromTag(p, str, t0) {
+// "Measured from: …" tag at the left, top by default (screen space).
+function fromTag(p, str, t0, dur = .5, y = 136) {
   const g = G(p, { o: 0 });
-  phPin(g, { x: 112, y: 150, s: .8 });
-  runs(g, [['Measured from:  ', COL.dim], [str, PH.ref]], { x: 146, y: 136, size: 34, anchor: 'start', o: 1 });
-  show(g, t0);
+  phPin(g, { x: 112, y: y + 14, s: .8 });
+  runs(g, [['Measured from:  ', COL.dim], [str, PH.ref]], { x: 146, y, size: 34, anchor: 'start', o: 1 });
+  show(g, t0, dur);
   return g;
 }
+// Earth from above the North Pole, in a camera's world. The overview camera (800, 450, z 1) shows it at (EX, EY).
+const EX = 430, EY = 450, ER = 200, ESPIN = -14;              // spin in degrees per second; negative = counterclockwise
+const rimAngle = t => (-90 + ESPIN * t) * Math.PI / 180;      // where "you" are on the rim at time t
+// A camera locked onto you, rolling with the ground, `lift` world px above it.
+const groundView = (lift, z) => ({ x: t => EX + (ER + lift) * Math.cos(rimAngle(t)), y: t => EY + (ER + lift) * Math.sin(rimAngle(t)), z, r: t => ESPIN * t });
+function earthWorld(cam, D) {
+  const E = phEarthPolar(cam.world, { x: EX, y: EY, R: ER });
+  const rim = deg => G(G(E._spin, { r: deg }), { y: -ER });
+  phTree(rim(-15), { s: .19, kind: 1 }); phHouse(rim(-9), { s: .17 }); phTree(rim(7), { s: .19 }); phBush(rim(12), { s: .22 });
+  const you = rim(0);
+  phPerson(you, { s: .17 });
+  clockRun(t => put(E._spin, { r: ESPIN * t }), D);
+  return { E, you };
+}
+// Street for the split screen: truck and car loop round the wrapping street (one loop = ROAD.W, so the follow camera's
+// jump at the loop is invisible). The truck enters the roadside view at t = 2.4 s.
+// The roadside view needs no wrap, so its truck loops sooner (L = 1850) and is back on screen before the beat ends.
+const loopX = (t, L = ROAD.W) => -200 + ((520 + V * (t - 2.4)) % L + L) % L;
 
 /* ---------- beats ---------- */
 const BEATS = [
 ['intro', 'Motion', (m, D) => {
-  const g = G(scene, { o: 0, y: 24 });
-  T(g, 'Unit 3 · Motion, Forces, and Work · Chapter 9', { x: 800, y: 250, size: 28, fill: COL.dim, anchor: 'middle' });
-  T(g, 'Motion', { x: 800, y: 390, size: 120, weight: 600, anchor: 'middle' });
+  const p = panel(0);
+  const cam = camera(p, D, { x: 800, y: 285, z: .9 });
+  const road = phRoad(cam);
+  const carX = t => -260 + 190 * t;
+  const car = phCar(road.vehicles, { y: ROAD.near });
+  const jog = phPerson(road.side, { shirt: COL.nat, y: ROAD.side });
+  cam.to({ x: t => carX(t) + 330 }, 2.4, 2);                 // lock on: from here the camera rides with the car
+  clockRun(t => {
+    const x = carX(t); put(car, { x }); phRoll(car, x);
+    const jx = 380 + 95 * t; put(jog, { x: jx }); phPose(jog, 'run', jx / 22);
+  }, D);
+  const g = G(p, { o: 0, y: 24 });
+  T(g, 'Unit 3 · Motion, Forces, and Work · Chapter 9', { x: 800, y: 130, size: 28, fill: COL.dim, anchor: 'middle' });
+  phLabel(g, 'Motion', { x: 800, y: 250, size: 120, weight: 600 });
   tw(g, { o: 1, y: 0 }, .2, 1.1, out);
-  const sub = txt(scene, 'Part 1 · Motion and relative motion', 800, 480, m('sub'), { size: 36, fill: COL.dim });
-  const road = G(scene, { o: 0 });
-  mk('rect', { x: 0, y: 700, width: 1600, height: 90, fill: PH.road }, road);
-  path(road, 'M0 745H1600', { stroke: PH.line, 'stroke-width': 4, 'stroke-dasharray': '60 80', 'stroke-linecap': 'butt' });
-  const car = phCar(road, { y: 772, s: .8, x: -150 });
-  show(road, .4, .6);
-  clockRun(t => { const x = -150 + V * 1.2 * t; put(car, { x }); phRoll(car, (x + 150) / .8); }, D);
-  [g, sub, road].forEach(e => hide(e, D - .9, .8));
+  txt(p, 'Part 1 · Motion and relative motion', 800, 320, m('sub'), { size: 36, fill: COL.dim });
 }],
 ['position', 'Motion is a change of position', (m, D) => {
   const p = panel(0);
+  const cam = camera(p, D, { x: 800, y: 420, z: .55 });
+  cam.to({ x: 800, y: 450, z: 1 }, .1, 1.6);                // wide shot of the park, pushing in to the track
+  const w = cam.world;
+  phHills(w, { y: 470, amp: 30, x0: -1400, x1: 3000, fill: PH.hill2, seed: 2 });
+  phBlock(w, -1400, 520, 4400, 1200, PH.grass, { top: 6, ol: 0 });
+  phTree(w, { x: -300, y: 540, s: 1.3 }); phTree(w, { x: -90, y: 548, kind: 1 }); phBush(w, { x: 40, y: 578 });
+  phTree(w, { x: 1720, y: 540, s: 1.2, kind: 1 }); phTree(w, { x: 1960, y: 548, s: 1.3 }); phBush(w, { x: 1560, y: 572 });
+  phPerson(w, { shirt: COL.whole, x: 80, y: 560, s: .9 });
   const X0 = 200, U = 120, TY = 600, R = 40, xm = v => X0 + U * v;
-  txt(p, 'Position: where something is, measured from a starting mark', 800, 150, .2, { size: 34, fill: COL.dim });
-  const track = G(p, { o: 0 });
-  mk('rect', { x: X0 - 30, y: TY, width: U * 10 + 60, height: 14, rx: 6, fill: '#6b5a48' }, track);
+  const track = G(w);
+  phBlock(track, X0 - 30, TY, U * 10 + 60, 16, '#8a6f55', { top: 4, ol: 2 });
   for (let v = 0; v <= 10; v++) {
-    path(track, `M${xm(v)} ${TY + 14}V${TY + 32}`, { stroke: COL.dim, 'stroke-width': 3 });
-    T(track, String(v), { x: xm(v), y: TY + 68, size: 28, fill: COL.dim, anchor: 'middle' });
+    mk('rect', { x: xm(v) - 2, y: TY + 16, width: 4, height: 16, fill: COL.dim }, track);
+    T(track, String(v), { x: xm(v), y: TY + 68, size: 28, fill: COL.chalk, anchor: 'middle' });
   }
   T(track, 'meters', { x: xm(10) + 40, y: TY + 68, size: 26, fill: COL.dim });
   T(track, 'zero mark', { x: xm(0), y: TY + 104, size: 24, fill: COL.dim, anchor: 'middle' });
-  show(track, .2);
-  const ghost = mk('circle', { cx: xm(2), cy: TY - R, r: R, fill: 'none', stroke: COL.dim, 'stroke-width': 3, 'stroke-dasharray': '8 8' }, p);
+  txt(p, 'Position: where something is, measured from a starting mark', 800, 150, 1.4, { size: 34, fill: COL.dim });
+  const ghost = mk('circle', { cx: xm(2), cy: TY - R, r: R, fill: 'none', stroke: COL.dim, 'stroke-width': 3, 'stroke-dasharray': '8 8' }, w);
   put(ghost, { o: 0 });
-  const ball = phBall(p, R, { x: xm(2), y: TY - R, o: 0 });
-  show(ball, .3);
-  const at2 = txt(p, 'position: 2 m', xm(2), TY - 110, m('pos'), { size: 32 });
+  const ball = phBall(w, R, { x: xm(2), y: TY - R });
+  const at2 = txt(w, 'position: 2 m', xm(2), TY - 110, m('pos'), { size: 32 });
   hide(at2, m('roll'), .4); show(ghost, m('roll'), .4);
-  prog(q => { const x = xm(2) + U * 5 * q; put(ball, { x, r: (x - xm(2)) / R * 180 / Math.PI }); }, m('roll', .1), 2.2, io);
-  txt(p, 'position: 7 m', xm(7), TY - 110, m('now'), { size: 32 });
-  const ch = G(p, { o: 0 });
+  prog(q => { const x = xm(2) + U * 5 * q; put(ball, { x }); put(ball._spin, { r: (x - xm(2)) / R * 180 / Math.PI }); }, m('roll', .1), 2.2, io);
+  txt(w, 'position: 7 m', xm(7), TY - 110, m('now'), { size: 32 });
+  const ch = G(w, { o: 0 });
   path(ch, arrowPath(xm(2), TY + 150, xm(7)), { stroke: PH.change, 'stroke-width': 5 });
   T(ch, 'change of position: 5 m', { x: xm(4.5), y: TY + 200, size: 32, fill: PH.change, weight: 700, anchor: 'middle' });
   show(ch, m('change'));
@@ -108,120 +133,110 @@ const BEATS = [
   const earth = phEarthSmall(f2, { r: 22 });
   T(f2, 'not to scale', { x: 990, y: 565, size: 20, fill: COL.dim, anchor: 'end' });
   const f3 = frame(1300, m('you'), 'you, walking');
-  path(f3, 'M1110 540H1490', { stroke: COL.dim, 'stroke-width': 4 });
+  phBlock(f3, 1092, 540, 416, 38, PH.grass, { top: 5, ol: 0 });
   const you = phPerson(f3, { x: 1160, y: 540, s: .95 });
   const tp = m('page'), te = m('earth'), ty = m('you');
   clockRun(t => {
     const c = Math.max(0, t - tp - .3) % 2.4;
-    phFlip(book, 180 * smooth(c / 1.4));
+    phFlip(book, 180 * soft(Math.min(1, c / 1.4)));
     const a = (-90 - 40 * Math.max(0, t - te + .5)) * Math.PI / 180;   // counterclockwise, seen from above the North Pole
     put(earth, { x: 800 + 140 * Math.cos(a), y: 395 + 140 * Math.sin(a) });
     put(sun._rays, { r: 8 * t });
     const d = Math.min(260, Math.max(0, t - ty) * 85);
-    put(you, { x: 1160 + d }); phPose(you, d > 0 && d < 260 ? d / 40 : null);
+    put(you, { x: 1160 + d }); phPose(you, d > 0 && d < 260 ? 'walk' : 'stand', d / 24);
   }, D);
 }],
 ['roadside', 'Standing by the road', (m, D) => {
   const p = panel(0);
-  const road = phRoad(p);
-  for (const k of ['back', 'g', 'vehicles', 'front']) { put(road[k], { o: 0 }); show(road[k], .2, .6); }
-  const you = phPerson(road.back, { x: 760, y: ROAD.side, o: 0 });
+  const cam = camera(p, D);
+  cam.to({ x: 780, y: 470, z: 1.05 }, 0, D, lin);         // fixed roadside shot with a slow push-in
+  const road = phRoad(cam);
+  const you = phPerson(road.side, { x: 760, y: ROAD.side, o: 0 });
   show(you, m('stand'));
-  const youL = phLabel(road.front, 'you', { x: 760, y: 272, fill: PH.you, o: 0 });
-  show(youL, m('stand'));
+  show(phLabel(road.front, 'you', { x: 760, y: 272, fill: PH.you, o: 0 }), m('stand'));
   const truck = phTruck(road.vehicles, { y: ROAD.far, s: .85 });
-  const tl = phLabel(road.front, '', { y: 385, fill: PH.truck, o: 0 });
-  const tag = fromTag(p, 'you, by the road', m('speed'));
-  const pin = phPin(road.front, { x: 760, y: 236, s: 0, o: 0 });
-  pop(pin, m('speed'));
+  const tl = phLabel(road.front, `truck: ${speedStr(V)}`, { y: 380, fill: PH.truck, o: 0 });
+  fromTag(p, 'you, by the road', m('speed'));
+  pop(phPin(road.front, { x: 760, y: 236, s: 0, o: 0 }), m('speed'));
   show(tl, m('speed'));
   const t0 = m('truck', -.3);
   clockRun(t => {
-    const x = -140 + V * Math.max(0, t - t0);
-    put(truck, { x }); phRoll(truck, (x + 140) / .85);
-    put(tl, { x: x + 10 }); tl.textContent = `truck: ${speedStr(V)}`;
+    const x = -250 + V * Math.max(0, t - t0);
+    put(truck, { x }); phRoll(truck, x / .85); put(tl, { x: x + 10 });
   }, D);
 }],
 ['incar', 'Riding beside the truck', (m, D) => {
   const p = panel(0);
-  const road = phRoad(p);
-  const FR = 1100, tc = m('car', .3), r0 = m('ride'), RAMP = 1.6;
-  const friend = phPerson(road.back, { shirt: PH.friend, x: FR, y: ROAD.side });
+  const cam = camera(p, D);
+  const road = phRoad(cam);
+  const FR = 1100, tc = m('car', .3), r0 = m('ride');
+  const xw = t => -330 + V * Math.max(0, t - tc);            // world position of the truck and the car (side by side)
+  // Hard cut at "ride": the camera now rides in the car (locked on it, a little closer, with a light road shake).
+  cam.cut({ x: t => xw(t) + 10, y: 600, z: 1.15 }, r0).shake(1.6, r0, D - r0, 6);
+  phPerson(road.side, { shirt: PH.friend, x: FR, y: ROAD.side });
   const truck = phTruck(road.vehicles, { y: ROAD.far, s: .85 });
   const car = phCar(road.vehicles, { y: ROAD.near });
-  const fl = phLabel(road.front, '', { y: 272, fill: PH.friend, o: 0 });
-  const tl = phLabel(road.front, '', { y: 385, fill: PH.truck, o: 0 });
+  const fl = phLabel(road.front, '', { x: FR, y: 272, fill: PH.friend, o: 0 });
+  const tl = phLabel(road.front, '', { y: 380, fill: PH.truck, o: 0 });
   const cl = phLabel(road.front, '', { y: ROAD.bot + 56, fill: PH.car, o: 0 });
-  const sl = phLabel(road.front, 'road and trees: ← 30 mph', { x: 70, y: 868, size: 30, fill: COL.dim, anchor: 'start', o: 0 });
-  const pin = phPin(road.front);
+  const sl = phLabel(p, 'road and trees: ← 30 mph', { x: 70, y: 862, size: 30, fill: COL.dim, anchor: 'start', o: 0 });
   show(fl, .4); show(tl, tc + 1.6); show(cl, tc + 1.6); show(sl, m('back'));
-  const tagA = fromTag(p, 'the roadside', .3), tagB = fromTag(p, 'your car', r0);
-  hide(tagA, r0, .4);
+  const pinA = phPin(road.side, { x: FR, y: 236, o: 0 }), pinB = phPin(car, { x: 30, y: -112, s: 0, o: 0 });
+  show(pinA, .3); hide(pinA, r0, 0); pop(pinB, r0 + .3);
+  const tagA = fromTag(p, 'the roadside', .3);
+  hide(tagA, r0, 0); fromTag(p, 'your car', r0, 0, 800);   // bottom: the friend slides through the top
   clockRun(t => {
-    const xw = -330 + V * Math.max(0, t - tc);                 // world position of the truck and the car (side by side)
-    const u = t - r0, camV = u <= 0 ? 0 : u < RAMP ? V * u / RAMP : V;
-    const cam = u <= 0 ? 0 : u < RAMP ? V * u * u / (2 * RAMP) : V * RAMP / 2 + V * (u - RAMP);
-    road.update(cam);
-    const sx = road.sx(xw);
-    put(truck, { x: sx }); put(car, { x: sx + 10 });
-    phRoll(truck, (xw + 330) / .85); phRoll(car, xw + 330);
-    put(friend, { x: road.sx(FR) });
-    put(fl, { x: road.sx(FR) }); fl.textContent = `friend: ${speedStr(-camV)}`;
-    put(tl, { x: sx + 10 }); tl.textContent = `truck: ${speedStr(t < tc ? 0 : V - camV)}`;
-    put(cl, { x: sx + 10 }); cl.textContent = `your car: ${speedStr(t < tc ? 0 : V - camV)}`;
-    const k = smooth(u / 1.1), ax = road.sx(FR), ay = 236, bx = sx + 30, by = ROAD.near - 112;
-    put(pin, { x: ax + (bx - ax) * k, y: ay + (by - ay) * k - Math.sin(k * Math.PI) * 120, o: t < .3 ? 0 : Math.min(1, (t - .3) / .5) });
+    const x = xw(t), camV = t < r0 ? 0 : V, rel = t < tc ? 0 : V - camV;
+    put(truck, { x }); put(car, { x: x + 10 });
+    phRoll(truck, (x + 330) / .85); phRoll(car, x + 330);
+    fl.textContent = `friend: ${speedStr(-camV)}`;
+    put(tl, { x: x + 10 }); tl.textContent = `truck: ${speedStr(rel)}`;
+    put(cl, { x: x + 10 }); cl.textContent = `your car: ${speedStr(rel)}`;
   }, D);
 }],
 ['rule', 'Motion is relative', (m, D) => {
   const p = panel(0);
-  const mini = (fx, t0, title, build) => {
-    const g = G(p, { o: 0 });
-    const id = 'mini' + fx, cp = mk('clipPath', { id }, mk('defs', {}, g));
-    mk('rect', { x: fx, y: 150, width: 640, height: 320, rx: 20 }, cp);
-    const clip = G(g); clip.setAttribute('clip-path', `url(#${id})`);
-    const w = G(clip, { x: fx, y: 150 - .5 * 250, s: .5 });
-    mk('rect', { x: 0, y: 0, width: 1280, height: 900, fill: '#22332d' }, w);
-    build(w, g);
-    mk('rect', { x: fx, y: 150, width: 640, height: 320, rx: 20, fill: 'none', stroke: COL.faint, 'stroke-width': 2 }, g);
-    phLabel(g, title, { x: fx + 24, y: 196, size: 28, fill: PH.ref, anchor: 'start' });
-    show(g, t0);
-    return g;
+  // Split screen: the same street through two cameras at once, one standing by the road, one riding in the car.
+  const view = (box, t0, title, ride) => {
+    const cam = camera(p, D, { box, x: 1200, y: 560, z: .5 });
+    const L = ride ? ROAD.W : 1850;
+    if (ride) cam.cut({ x: t => loopX(t) + 10 }, 0);
+    const r = phRoad(cam, { hills: false });
+    phPerson(r.scenery, { shirt: PH.friend, x: 850, y: ROAD.side });
+    if (!ride) phPin(r.scenery, { x: 850, y: 296, s: 1.1 });
+    const truck = phTruck(r.vehicles, { y: ROAD.far, s: .85 }), car = phCar(r.vehicles, { y: ROAD.near });
+    if (ride) phPin(car, { x: 30, y: -112, s: 1.4 });
+    const lab = phLabel(r.front, ride ? 'truck: 0 mph' : 'truck: 30 mph →', { y: 380, size: 56, fill: PH.truck });
+    clockRun(t => {
+      const x = loopX(t, L), dist = 520 + V * (t - 2.4);
+      put(truck, { x }); put(car, { x: x + 10 }); put(lab, { x: x + 10 });
+      phRoll(truck, dist / .85); phRoll(car, dist);
+    }, D);
+    put(cam.el, { o: 0 }); show(cam.el, t0);
+    show(phLabel(p, title, { x: box[0] + 24, y: box[1] + box[3] - 22, size: 28, fill: PH.ref, anchor: 'start', o: 0 }), t0);
   };
-  const streaks = (w, x, y) => path(w, [0, 34, 68].map(d => `M${x - 40} ${y - d}H${x - 130}`).join(''), { stroke: COL.chalk, 'stroke-width': 6, opacity: .6 });
-  mini(120, m('side', -.4), 'from the roadside', (w, g) => {
-    const r = phRoad(w, { trees: [80, 1100], lamps: [] });
-    phPerson(r.back, { x: 330, y: ROAD.side });
-    phPin(r.front, { x: 330, y: 250, s: 1.4 });
-    const tr = phTruck(r.vehicles, { x: 860, y: ROAD.far, s: .85 }); streaks(r.vehicles, 860 - 200, ROAD.far - 60);
-    phLabel(g, 'truck: 30 mph →', { x: 120 + 430, y: 218, size: 28, fill: PH.truck });
-  });
-  mini(840, m('car', -.4), 'from the car', (w, g) => {
-    const r = phRoad(w, { trees: [180, 760, 1200], lamps: [] });
-    [180, 760, 1200].forEach(x => streaks(r.back, x + 170, ROAD.side - 90));
-    phTruck(r.vehicles, { x: 640, y: ROAD.far, s: .85 }); phCar(r.vehicles, { x: 650, y: ROAD.near });
-    phPin(r.front, { x: 680, y: ROAD.near - 112, s: 1.2 });
-    phLabel(g, 'truck: 0 mph', { x: 840 + 320, y: 218, size: 28, fill: PH.truck });
-  });
-  const check = x => { const c = path(p, `M${x} 430l18 18l36 -42`, { stroke: COL.good, 'stroke-width': 9 }, { d: 0 }); draw(c, m('both'), .5); };
-  check(700); check(1420);
-  txt(p, 'Both are correct.', 800, 530, m('both'), { size: 34, fill: COL.good });
-  show(runs(p, [['Motion is ', COL.chalk], ['relative', PH.ref], ['.', COL.chalk]], { x: 800, y: 640, size: 72 }), m('rel'));
-  show(runs(p, [['It is always described in relation to a ', COL.chalk], ['reference point', PH.ref], ['.', COL.chalk]], { x: 800, y: 730, size: 40, weight: 500 }), m('refpt'));
-  txt(p, 'reference point = the place or object you measure from', 800, 800, m('refpt', 3), { size: 30, fill: COL.dim, weight: 500 });
+  view([80, 120, 700, 380], m('side', -.4), 'from the roadside', false);
+  view([820, 120, 700, 380], m('car', -.4), 'from the car', true);
+  const check = x => { const c = path(p, `M${x} 455l18 18l36 -42`, { stroke: COL.good, 'stroke-width': 9 }, { d: 0 }); draw(c, m('both'), .5); };
+  check(700); check(1440);
+  txt(p, 'Both are correct.', 800, 560, m('both'), { size: 34, fill: COL.good });
+  show(runs(p, [['Motion is ', COL.chalk], ['relative', PH.ref], ['.', COL.chalk]], { x: 800, y: 660, size: 72 }), m('rel'));
+  show(runs(p, [['It is always described in relation to a ', COL.chalk], ['reference point', PH.ref], ['.', COL.chalk]], { x: 800, y: 745, size: 40, weight: 500 }), m('refpt'));
+  txt(p, 'reference point = the place or object you measure from', 800, 808, m('refpt', 3), { size: 30, fill: COL.dim, weight: 500 });
 }],
 ['earth', 'Why we don\'t feel Earth spin', (m, D) => {
   const p = panel(0);
-  const EX = 430, EY = 450, ER = 200;
-  txt(p, 'Seen from far above the North Pole', 70, 80, .2, { size: 32, fill: COL.dim, anchor: 'start' });
-  const E = phEarthPolar(p, { x: EX, y: EY, R: ER });
-  put(E, { o: 0 }); show(E, .2);
-  const rim = G(E._spin);
-  const onRim = G(rim, { y: -ER });
-  phHouse(onRim, { x: -50, s: .38 }); phTree(onRim, { x: 46, s: .42 }); phPerson(onRim, { x: 4, s: .38 });
-  const rimRing = mk('circle', { cx: 4, cy: -34, r: 42, fill: 'none', stroke: PH.ref, 'stroke-width': 4 }, onRim);
+  const sky = mk('rect', { width: 1600, height: 900, fill: PH.sky }, p);
+  const cam = camera(p, D);
+  // Open on the ground, rolling with it (nothing moves), then pull back into space: the spin appears.
+  cam.cut(groundView(26, 6), 0).to({ x: 800, y: 450, z: 1, r: 0 }, m('earth'), 3.4);
+  const stars = cam.layer(.15);
+  for (let i = 0; i < 110; i++) { const k = 2 + 3 * phHash(i, 5); mk('rect', { x: -1400 + 4400 * phHash(i, 1), y: -1000 + 2900 * phHash(i, 2), width: k, height: k, fill: COL.chalk, opacity: .3 + .5 * phHash(i, 3) }, stars); }
+  const { you } = earthWorld(cam, D);
+  clockRun(t => { const k = Math.min(1, Math.max(0, (cam.at(t).z - 1.6) / 2)); put(sky, { o: k }); put(stars, { o: 1 - k }); }, D);
+  const rimRing = mk('rect', { x: -16, y: -40, width: 32, height: 44, rx: 6, fill: 'none', stroke: PH.ref, 'stroke-width': 2.5 }, you);
   put(rimRing, { o: 0 });
-  const arcs = G(p, { o: 0 });
+  const arcs = G(cam.world, { o: 0 });
   const arc = (a1, a2) => {
     const rr = ER + 92, P = a => [EX + rr * Math.cos(a * Math.PI / 180), EY + rr * Math.sin(a * Math.PI / 180)];
     const [x1, y1] = P(a1), [x2, y2] = P(a2), t = a2 * Math.PI / 180, dx = Math.sin(t), dy = -Math.cos(t);
@@ -229,52 +244,49 @@ const BEATS = [
     path(arcs, `M${x2 - 18 * dx - 10 * dy} ${y2 - 18 * dy + 10 * dx}L${x2} ${y2}L${x2 - 18 * dx + 10 * dy} ${y2 - 18 * dy - 10 * dx}`, { stroke: COL.chalk, 'stroke-width': 5 });
   };
   arc(215, 145); arc(35, -35);
-  show(arcs, m('earth'));
-  txt(p, 'counterclockwise', EX, 772, m('earth', 1.2), { size: 30, fill: COL.chalk });
-  const eq = mk('circle', { cx: EX, cy: EY, r: ER, fill: 'none', stroke: COL.int, 'stroke-width': 7, transform: `rotate(-90 ${EX} ${EY})` }, p);
+  show(arcs, m('earth', 2.8));
+  txt(p, 'Seen from far above the North Pole', 70, 80, m('earth'), { size: 32, fill: COL.dim, anchor: 'start' });
+  txt(p, 'counterclockwise', EX, 772, m('earth', 3.2), { size: 30, fill: COL.chalk });
+  const eq = mk('circle', { cx: EX, cy: EY, r: ER, fill: 'none', stroke: COL.int, 'stroke-width': 7, transform: `rotate(-90 ${EX} ${EY})` }, cam.world);
   eq.setAttribute('pathLength', 1); eq.setAttribute('stroke-dasharray', '1 1'); put(eq, { d: 0 }); draw(eq, m('fast'), 1.2);
   runs(p, [['equator (the rim): ', COL.int], ['more than 1,000 mph', COL.chalk]], { x: EX, y: 818, size: 30, o: 0 });
   show(p.lastChild, m('fast', .4));
-  T(p, 'people and buildings drawn much larger', { x: EX, y: 860, size: 22, fill: COL.dim, anchor: 'middle' });
+  txt(p, 'people and buildings drawn much larger', EX, 860, m('earth', 3.4), { size: 22, fill: COL.dim, weight: 500 });
   const rx = 1180;
-  const q1 = txt(p, 'Why can\'t we feel it?', rx, 200, m('why'), { size: 42 });
-  const q2 = txt(p, 'Everything near you spins along with Earth.', rx, 260, m('along'), { size: 28, fill: COL.dim, weight: 500 });
+  txt(p, 'Why can\'t we feel it?', rx, 200, m('why'), { size: 42 });
+  txt(p, 'Everything near you spins along with Earth.', rx, 260, m('along'), { size: 28, fill: COL.dim, weight: 500 });
   show(rimRing, m('along', 1));
-  const zoom = G(p, { o: 0 });
-  const id = 'groundclip', cp = mk('clipPath', { id }, mk('defs', {}, zoom));
-  mk('rect', { x: 880, y: 310, width: 600, height: 380, rx: 20 }, cp);
-  const zc = G(zoom); zc.setAttribute('clip-path', `url(#${id})`);
-  mk('rect', { x: 880, y: 310, width: 600, height: 380, fill: '#2a4a5c' }, zc);
-  mk('rect', { x: 880, y: 600, width: 600, height: 90, fill: '#3d5c40' }, zc);
-  phHouse(zc, { x: 1000, y: 610, s: 1.05 }); phTree(zc, { x: 1380, y: 610, s: 1.1 }); phPerson(zc, { x: 1210, y: 620, s: .95 });
-  phPin(zc, { x: 1214, y: 425, s: .9 });
-  mk('rect', { x: 880, y: 310, width: 600, height: 380, rx: 20, fill: 'none', stroke: COL.faint, 'stroke-width': 2 }, zoom);
-  phLabel(zoom, 'from where you stand', { x: 904, y: 352, size: 28, fill: PH.ref, anchor: 'start' });
-  T(zoom, 'house, tree, ground: 0 mph', { x: rx, y: 740, size: 32, weight: 600, anchor: 'middle' });
-  T(zoom, 'Nothing seems to move.', { x: rx, y: 790, size: 32, weight: 600, fill: COL.good, anchor: 'middle' });
-  show(zoom, m('zoom'), .7);
-  clockRun(t => put(E._spin, { r: -14 * t }), D);   // negative = counterclockwise on screen
-}],
+  // Picture-in-picture: a second camera that stays with you on the ground.
+  const box = [880, 300, 600, 380];
+  const pip = camera(p, D, { box, bg: PH.sky });
+  pip.cut(groundView(20, 6), 0);
+  phPin(earthWorld(pip, D).you, { y: -34, s: .3 });
+  put(pip.el, { s: 0, o: 0 }); pop(pip.el, m('zoom'));
+  show(phLabel(p, 'from where you stand', { x: box[0] + 24, y: box[1] + box[3] - 22, size: 28, fill: PH.ref, anchor: 'start', o: 0 }), m('zoom', .3));
+  txt(p, 'house, tree, ground: 0 mph', rx, 740, m('zoom', .3), { size: 32 });
+  txt(p, 'Nothing seems to move.', rx, 790, m('zoom', .3), { size: 32, fill: COL.good });
+}, { lead: false }],   // the ground shot is on screen from the first frame
 ['q1', 'Quick check', (m, D) => {
   const p = panel(0);
   const GY = 430;
-  path(p, `M0 ${GY + 4}H1600`, { stroke: '#6b5a48', 'stroke-width': 8 });
+  phBlock(p, 0, GY + 2, 1600, 10, '#6b5a48', { top: 3, ol: 0 });
+  path(p, Array.from({ length: 27 }, (_, i) => `M${i * 60 + 10} ${GY + 12}h34`).join(''), { stroke: '#4a3d31', 'stroke-width': 6 });
+  path(p, [0, 40, 80].map(k => `M${720 - 520} ${GY - 120 - k}H${720 - 620}`).join(''), { stroke: COL.chalk, 'stroke-width': 6, opacity: .6 });
   const train = phCarriage(p, { x: 720, y: GY, w: 1000 });
   put(train, { o: 0 }); show(train, .2);
-  const wx = 720 + train._wins[2];
-  const win = G(train);
-  phWindow(win, `M${train._wins[2] - 62} -232h124v96h-124Z`, { shirt: COL.int, hair: '#2d1e16', x: train._wins[2] - 22, y: -136, s: .85 });
-  mk('rect', { x: train._wins[2] - 4, y: -152, width: 66, height: 9, fill: '#8a6a4c' }, win);
-  path(win, `M${train._wins[2] + 30} -152v-26q0 -6 4 -9v-6h8v6q4 3 4 9v26Z`, { fill: '#86c9e8', ...phLine(2) });
+  const wl = train._wins[2], wx = 720 + wl;
+  phCarWin(train, 2, { shirt: COL.int, hair: '#2d1e16', x: wl - 24, y: -96, s: .6 });
+  phBlock(train, wl - 4, -152, 66, 9, '#8a6a4c', { top: 3, ol: 2 });
+  phBlock(train, wl + 32, -186, 14, 34, '#86c9e8', { top: 0, right: 4, ol: 2 });
+  phBlock(train, wl + 34, -194, 10, 8, COL.whole, { top: 0, ol: 2 });
   phLabel(p, 'Maya', { x: wx - 22, y: GY - 98, size: 28, fill: COL.int });
   phLabel(p, 'water bottle', { x: wx + 120, y: GY - 300, size: 24, fill: '#86c9e8' });
-  path(p, `M${wx + 80} ${GY - 292}L${wx + 38} ${GY - 196}`, { stroke: '#86c9e8', 'stroke-width': 3 });
-  path(p, [0, 40, 80].map(k => `M${720 - 520} ${GY - 120 - k}H${720 - 620}`).join(''), { stroke: COL.chalk, 'stroke-width': 6, opacity: .6 });
+  path(p, `M${wx + 80} ${GY - 292}L${wx + 42} ${GY - 196}`, { stroke: '#86c9e8', 'stroke-width': 3 });
   phLabel(p, 'train: 60 mph →', { x: 520, y: GY - 300, size: 30, fill: COL.real });
-  mk('rect', { x: 1260, y: GY + 8, width: 340, height: 110, fill: '#4a524f' }, p);
-  path(p, `M1260 ${GY + 10}H1600`, { stroke: COL.int, 'stroke-width': 5 });
-  phPerson(p, { shirt: COL.nat, x: 1430, y: GY + 80 });
-  phLabel(p, 'Leo, on the platform', { x: 1430, y: GY - 128, size: 26, fill: COL.nat });
+  phBlock(p, 1260, GY + 8, 340, 110, '#4a524f', { top: 6, ol: 2 });
+  mk('rect', { x: 1260, y: GY + 8, width: 340, height: 6, fill: COL.int }, p);
+  phPerson(p, { shirt: COL.nat, x: 1430, y: GY + 18 });
+  phLabel(p, 'Leo, on the platform', { x: 1430, y: GY - 172, size: 26, fill: COL.nat });
 }, { ask: done => quiz(Q_CARD, [
   { id: 'c-maya', prompt: ['Measured from ', h('b', '', 'Maya'), ', how fast is the water bottle on her table moving?'],
     build: choice([['0 mph'], ['60 mph'], ['120 mph']], 0,
@@ -294,7 +306,7 @@ const BEATS = [
    ['Motion is relative: it is described from a reference point.', 'w2'],
    ['Different reference points can give different answers, and each can be right.', 'w3']].forEach(([s, mark], i) => {
     const g = G(p, { x: -16, y: 300 + i * 140, o: 0 });
-    mk('circle', { cx: 170, cy: -12, r: 26, fill: PH.ref }, g);
+    mk('rect', { x: 144, y: -38, width: 52, height: 52, rx: 6, fill: PH.ref }, g);
     T(g, String(i + 1), { x: 170, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
     T(g, s, { x: 230, size: 36, weight: 600 });
     tw(g, { o: 1, x: 0 }, m(mark), .6);
