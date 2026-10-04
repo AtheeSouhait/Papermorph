@@ -827,6 +827,74 @@ function evalTo(t, list = TW) {
   }
 }
 
+/* ---------- world clock and camera ---------- */
+const soft = p => (1 - Math.cos(Math.PI * p)) / 2;   // gentle in-out, for camera moves
+// Continuous motion: f(t) runs on every frame of the beat with t in seconds from its start (0..D).
+// Keep f a pure function of t, so pause, seek and ?beat=N&t=S show the same frame.
+const clockRun = (f, D) => { f(0); prog(q => f(q * D), 0, D, lin); };
+// A camera looks at a world group through the stage (or a box, for split screen and picture-in-picture).
+// The view {x, y, z, r} is the world point at the centre, the zoom (screen px per world px) and the roll in degrees.
+// Moves are keyed on the beat clock: to(view, t0, dur, ease) blends each given key from its value at t0; a key may be a
+// function of t (follow). Unspecified keys keep following the earlier moves. dur 0 is a hard cut.
+let camN = 0;
+function camera(p, D, { box, x = 800, y = 450, z, r = 0, bg = COL.board } = {}) {
+  const [bx, by, bw, bh] = box || [0, 0, 1600, 900];
+  const el = G(p, { x: bx + bw / 2, y: by + bh / 2 });
+  let hold = el;
+  if (box) {
+    const id = 'cam' + (++camN);
+    mk('rect', { x: -bw / 2, y: -bh / 2, width: bw, height: bh, rx: 18 }, mk('clipPath', { id }, mk('defs', {}, el)));
+    hold = G(el); hold.setAttribute('clip-path', `url(#${id})`);
+    mk('rect', { x: -bw / 2, y: -bh / 2, width: bw, height: bh, fill: bg }, hold);
+  }
+  const view = mk('g', {}, hold), world = G(view);
+  if (box) mk('rect', { x: -bw / 2, y: -bh / 2, width: bw, height: bh, rx: 18, fill: 'none', stroke: COL.faint, 'stroke-width': 2 }, el);
+  const v0 = { x, y, z: z ?? (box ? Math.min(bw / 1600, bh / 900) : 1), r };
+  const ops = [], shakes = [], layers = [];
+  const val = (v, t) => typeof v === 'function' ? v(t) : v;
+  // The view at time t after the first n moves; each move remembers the view it starts from.
+  function at(t, n = ops.length) {
+    const s = { ...v0 };
+    for (let i = 0; i < n && ops[i].t0 <= t; i++) {
+      const o = ops[i], a = o.from || (o.from = at(o.t0, i));
+      const q = o.dur ? o.ease(Math.min(1, (t - o.t0) / o.dur)) : 1, b = {};
+      for (const k in o.v) b[k] = val(o.v[k], t);
+      if ('z' in b) s.z = a.z * (b.z / a.z) ** q;   // even zoom speed
+      // While zooming, x/y move so that one world point stays put on screen (when start and end allow it).
+      const u = 'z' in b && Math.abs(b.z - a.z) > 1e-6 * a.z ? (1 / s.z - 1 / a.z) / (1 / b.z - 1 / a.z) : q;
+      for (const k of ['x', 'y']) if (k in b) s[k] = a[k] + (b[k] - a[k]) * u;
+      if ('r' in b) s.r = a.r + (b.r - a.r) * q;
+    }
+    return s;
+  }
+  function apply(t) {
+    const s = at(t);
+    let sx = 0, sy = 0;
+    for (const k of shakes) if (t > k.t0 && t < k.t0 + k.dur) {
+      const e = k.amp * Math.min(1, (t - k.t0) / .3, (k.t0 + k.dur - t) / .3), w = 2 * Math.PI * k.hz * t;
+      sx += e * (Math.sin(w) + .5 * Math.sin(2.3 * w + 1)) / 1.5; sy += e * (Math.sin(1.7 * w + 2) + .5 * Math.sin(3.1 * w)) / 1.5;
+    }
+    view.setAttribute('transform', `translate(${sx} ${sy}) rotate(${-s.r}) scale(${s.z}) translate(${-s.x} ${-s.y})`);
+    const dx = s.x - v0.x, dy = s.y - v0.y;
+    for (const L of layers) put(L.g, { x: L.wrap ? dx - ((L.k * dx) % L.wrap + L.wrap) % L.wrap : (1 - L.k) * dx, y: (1 - L.k) * dy });
+  }
+  const cam = { el, world, at,
+    to(v, t0, dur = 1, ease = soft) { ops.push({ v, t0, dur, ease }); ops.sort((a, b) => a.t0 - b.t0); ops.forEach(o => delete o.from); return cam; },
+    cut: (v, t0) => cam.to(v, t0, 0),
+    shake(amp, t0, dur, hz = 7) { shakes.push({ amp, t0, dur, hz }); return cam; },
+    // Parallax layer: k < 1 is far (moves slower than the camera), k > 1 near. With wrap = W the layer's content
+    // repeats every W world px: draw one period plus the widest view, and the layer never runs out.
+    layer(k = 1, wrap) { const g = G(world); layers.push({ g, k, wrap }); return g; },
+    // Screen position of a world point at time t (k = 1 layers, no shake): for labels that track an object.
+    screen(wx, wy, t) {
+      const s = at(t), a = -s.r * Math.PI / 180, ux = (wx - s.x) * s.z, uy = (wy - s.y) * s.z;
+      return [bx + bw / 2 + ux * Math.cos(a) - uy * Math.sin(a), by + bh / 2 + ux * Math.sin(a) + uy * Math.cos(a)];
+    },
+  };
+  clockRun(apply, D);
+  return cam;
+}
+
 /* ---------- scene ---------- */
 const scene = document.getElementById('scene');
 const S = {};

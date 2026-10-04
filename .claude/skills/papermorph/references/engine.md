@@ -42,11 +42,24 @@ Topic helpers already in the engine: number lines (`numberLine`, `X(v)`, `Y0`, `
 ```
 
 - `m('name', offset)` is the start time of the word after `[[name]]`; `D` is the clip's length. Use marks for actions tied to speech; scene entrances and transitions can use fixed offsets.
-- Tweens: `tw(e, to, t0, dur, ease)`, `prog(q => …, t0, dur, ease)` for custom motion (arcs, counters, live redraws), `show`, `hide`, `draw`, `pop`, `pulse`, `stream`. Eases: `io`, `out`, `back`, `lin`.
+- Tweens: `tw(e, to, t0, dur, ease)`, `prog(q => …, t0, dur, ease)` for custom motion (arcs, counters, live redraws), `show`, `hide`, `draw`, `pop`, `pulse`, `stream`. Eases: `io`, `out`, `back`, `lin`, `soft`. Continuous motion and cameras: see below.
 - A lesson beat ends after its narration and its last tween, then the next starts; an `ask` beat waits for `done()`.
 - **Opening lead-in**: if a beat calls `panel()` (before 0.5 s) and nothing appears within 0.8 s, `runBeat` moves the opening group (every tween starting within 1.2 s of the first reveal) to start at 0.4 s. Opt out with `{ lead: false }` in the beat's fourth slot.
 - **Seeking replays**: jumping to beat N rebuilds the scene and runs earlier beats instantly. Make `run` deterministic: create objects and schedule tweens through the timeline, with inputs from chapter data and replayed `S` state. Create interactions inside `ask`; use `fx`/`fxp` for answer effects.
 - Constants used in a `BEATS` literal are evaluated when it is defined, so define them above `BEATS`. Data used only inside an `ask` closure may sit below.
+
+## World clock and camera
+
+For continuous motion (vehicles, orbits, rolling, scrolling scenery) and camera work. Everything is a pure function of the beat time, so pause, seek and `?beat=N&t=S` show the same frame.
+
+- `clockRun(f, D)` calls `f(t)` on every frame of the beat, `t` in seconds from its start (0..D). Write positions as functions of `t` (`x = x0 + v * t`) and share them between objects and the camera; never accumulate per-frame state.
+- `const cam = camera(parent, D, { x, y, z, r, box, bg })` makes a view onto a world group. Draw in `cam.world` in world coordinates. The view `{x, y}` is the world point shown at the centre, `z` the zoom (screen px per world px), `r` the roll in degrees. Defaults: full stage, `(800, 450)`, `z` 1 (identity, so stage coordinates still work). With `box: [x, y, w, h]` the camera draws in a framed, clipped box with background `bg` (split screen, picture-in-picture); its default zoom fits the 1600 × 900 world into the box. `cam.el` is the camera's group (fade, pop or hide it; it scales about the box centre).
+- Moves, all on the beat clock: `cam.to({x, y, z, r}, t0, dur = 1, ease = soft)` blends only the keys given, from wherever the camera is at `t0`; `cam.cut(view, t0)` is a hard cut (`dur` 0); `cam.shake(amp, t0, dur, hz = 7)` is a subtle, repeatable shake (fades in and out over 0.3 s). Any key may be a function of `t`: that is a follow shot (`cam.to({ x: t => carX(t) }, 2, 1.5)` locks on over 1.5 s; `r: t => spin(t)` rolls with a rotating object). Zoom changes evenly (log scale) and keeps one world point fixed when start and end allow it.
+- Parallax: `cam.layer(k, wrap)` returns a group inside the world that moves at `k` × the camera's pan (`k` < 1 far, > 1 near; zoom and roll are not scaled per layer). With `wrap = W` the layer's content repeats every `W` world px: draw one period plus the widest view, and the camera can pan any distance. Keep repeating details (dashes, tiles, trees) on a period that divides `W`, and move followed objects by multiples of `W` when they loop, so the loop is invisible.
+- `cam.at(t)` returns the view at `t`; `cam.screen(wx, wy, t)` the screen position of a world point (no shake), for screen-space labels that track an object.
+- Split screen or picture-in-picture: two cameras with boxes, each with its own copy of the world built by the same function and driven by the same clock functions. Cross-fade between shots by fading one camera's `el` out and another's in.
+- Labels drawn in the world scale with the zoom; put text that must stay readable in screen space (the panel) or give world labels a size for the shot's zoom. A beat whose camera shows a picture from its first frame while its first scheduled reveal is late may need `{ lead: false }`.
+- Ease `soft` (cosine in-out) suits camera moves; `io`, `out`, `back`, `lin` or any `p => …` work too.
 
 ## Questions
 
