@@ -79,13 +79,15 @@ const BEATS = [
   // One street: you push a cart on the left, your friend pulls one further along. The pushing force is 2 N, then 6 N
   // (it grows on "the longer the arrow"); each cart speeds up only while it is pushed or pulled. At "shape" the
   // street freezes and fades, and a can is squeezed in close-up.
-  const c = 7, tk = tg + .5, P0 = 300, Q0 = 2200;
+  const c = 7, tk = tg + .5, P0 = 300, Q0 = 3300;   // far enough apart that neither cart peeks into the other's frame
   const dP = t => { const u = Math.max(0, Math.min(t, ts) - t1), k = Math.max(0, Math.min(t, ts) - tk); return c * (2 * u * u + 4 * k * k) / 2; };
   const dQ = t => { const u = Math.max(0, Math.min(t, ts) - t2); return 15 * u * u / 2; };
   const cam = camera(p, D), w = cam.world;
   cam.cut({ x: t => Math.max(800, P0 + dP(t) + 500) }, 0).to({ x: t => Q0 + dQ(t) - 300 }, t2 - .15, 1.1).to({ x: t => Math.max(800, P0 + dP(t) + 500) }, td, 1.1);
-  [1000, 1500, 2550, 3300, 4000, 4700].forEach(x => phSprite(w, 'tree', { x, y: Y + 2, s: 1.6 }));   // clear of both starting frames
+  // The pushing cart and its labels cover x 450..2450: no tree there, so nothing shows through it. Tufts on the grass show the motion.
+  [2650, 4300, 5000].forEach(x => phSprite(w, 'tree', { x, y: Y + 2, s: 1.6 }));
   ground(w, Y, -800, 6400);
+  for (let x = -600; x < 5600; x += 140) mk('rect', { x, y: Y + 18, width: 24, height: 8, fill: lt(PH.grass, .2) }, w);
   const pa = phActor(w, 'you', { y: Y, s: S, anim: 'push' }), pc = phSprite(w, 'cart', { y: Y, s: CS }), f1 = forceArrow(w, { w: 14 });
   const lab = phLabel(w, '', { size: 36, fill: FORCE, anchor: 'start' }), note = T(w, 'longer arrow = bigger push', { size: 28, fill: COL.dim, weight: 500, o: 0 });
   const qa = phActor(w, 'friend', { y: Y, s: S, anim: 'pull' }), qc = phSprite(w, 'cart', { y: Y, s: CS }), rope = path(w, '', { stroke: '#c9b38d', 'stroke-width': 8 }), f2 = forceArrow(w, { w: 14, size: 36 });
@@ -173,7 +175,7 @@ const BEATS = [
     const on = t > .3;
     FL.set(360 + d + 60, 300, on ? 10 * U : 0, 180, '10 N'); FR.set(1240 + d - 60, 300, on ? pull * U : 0, 0, `${Math.round(pull)} N`);
     phText(tag, t < tb ? '' : t < tu ? 'balanced' : 'unbalanced'); put(tag, { x: mx }); put(zero, { x: mx });
-    NF.set(mx - 75, 700, t > tu + .9 ? 150 : 0, 0, 'net force 5 N');
+    NF.set(mx - 75, 715, t > tu + .9 ? 150 : 0, 0, 'net force 5 N', 0, -40);   // the label clear above the arrow head
   }, D);
 }, { lead: false }],
 ['newton', 'The newton', (m, D) => {
