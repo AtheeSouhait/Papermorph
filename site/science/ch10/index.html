@@ -507,6 +507,35 @@ const BEATS = [
   });
   txt(p, 'Next: the chapter practice.', 800, 760, m('end'), { size: 32, fill: COL.dim, weight: 500 });
 }],
+/* ---------- chapter practice and finish ---------- */
+['final1', 'Chapter practice: force and the first law', () => { panel(0); }, { ask: done => quiz(SCREEN, [
+  { id: 'p-bal', prompt: ['What is the difference between ', h('b', '', 'balanced'), ' and ', h('b', '', 'unbalanced'), ' forces?'],
+    build: choice([['Balanced forces cancel (net force 0); unbalanced forces leave a net force that changes motion.'], ['Balanced forces are always bigger than unbalanced ones.'], ['Unbalanced forces cancel; balanced forces change motion.']], 0,
+      'Balanced: the net force is zero, nothing changes. Unbalanced: there is a net force in one direction.',
+      [null, 'It is not about size: it is whether the forces cancel.', 'It is the other way around.']) },
+  { id: 'p-first', prompt: ['What is ', h('b', '', 'Newton’s first law'), '?'],
+    build: choice([['An object at rest stays at rest and an object in motion stays in motion, unless a net force acts on it.'], ['Acceleration equals net force divided by mass.'], ['For every action there is an equal and opposite reaction.']], 0,
+      'That is the law of inertia.', [null, 'That is the second law.', 'That is the third law.']) },
+  { id: 'p-unit', prompt: ['What is the unit of force, and what is one unit equal to?'],
+    build: choice([['the newton: 1 N = 1 kg × 1 m/s²'], ['the newton: 1 N = 1 kg × 1 m/s'], ['the kilogram: 1 kg = 1 N × 1 m/s²']], 0,
+      'One newton gives a 1 kilogram mass an acceleration of 1 meter per second squared.',
+      [null, 'Close: it is meters per second squared, an acceleration.', 'Force is measured in newtons; the kilogram measures mass.']) },
+  { id: 'p-net3', prompt: ['Forces on a box: 6 newtons right, 4 newtons right, and 3 newtons left. What is the net force?'],
+    build: blanks([{ parts: ['net force = 6 + 4 − 3 = ', { box: '7' }, ' newtons, to the right'], why: 'Same direction adds (6 + 4 = 10); the opposite force subtracts (10 − 3 = 7).', hint: 'Add the forces to the right, then subtract the one to the left.' }]) },
+], done, 'Chapter practice, set 1 of 2 · question') }],
+['final2', 'Chapter practice: the second and third laws', () => { panel(0); }, { ask: done => quiz(SCREEN, [
+  { id: 'p-second', prompt: ['What is ', h('b', '', 'Newton’s second law'), '?'],
+    build: choice([['The acceleration of an object equals the net force on it divided by its mass.'], ['Objects keep their motion unless a net force acts.'], ['Forces act in pairs.']], 0,
+      'a = net force ÷ mass, or net force = mass × acceleration.', [null, 'That is the first law.', 'That is the third law.']) },
+  { id: 'p-car', prompt: ['A 2,000 kilogram car accelerates at 3 meters per second squared. What force does the engine apply? (Type the number without a comma.)'],
+    build: blanks([{ parts: ['net force = 2000 × 3 = ', { box: '6000' }, ' newtons'], why: 'net force = mass × acceleration = 2,000 × 3 = 6,000 newtons.', hint: 'net force = mass × acceleration. Type 6000.' }]) },
+  { id: 'p-third', prompt: ['What is ', h('b', '', 'Newton’s third law'), '?'],
+    build: choice([['For every action, there is an equal and opposite reaction.'], ['More mass means more inertia.'], ['Momentum equals mass times velocity.']], 0,
+      'Forces act in pairs: equal in size, opposite in direction.', [null, 'That is about inertia (first law).', 'That defines momentum.']) },
+  { id: 'p-mom', prompt: ['A 0.5 kilogram ball moves at 8 meters per second. What is its momentum?'],
+    build: blanks([{ parts: ['momentum = 0.5 × 8 = ', { box: '4' }, ' kilogram meters per second'], why: 'mass × velocity = 0.5 × 8 = 4.', hint: 'momentum = mass × velocity.' }]) },
+], done, 'Chapter practice, set 2 of 2 · question') }],
+['finish', 'Finished', () => { panel(0); }, { ask: finishCard }],
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
 
 boot();
