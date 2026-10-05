@@ -45,9 +45,11 @@ const groundView = (lift, z) => ({ x: t => EX + (ER + lift) * Math.cos(rimAngle(
 function earthWorld(cam, D) {
   const E = phEarthPolar(cam.world, { x: EX, y: EY, R: ER });
   const rim = deg => G(G(E._spin, { r: deg }), { y: -ER });
-  phHouse(rim(-9), { s: .17 }); phTree(rim(7), { s: .19 });   // the narration's buildings, trees and you
+  const gr = ER - 3, ga = .4;   // ±23° of smooth ground under the rim scene (the pixel coast is stepped)
+  path(E._spin, `M${-gr * Math.sin(ga)} ${-gr * Math.cos(ga)}A${gr} ${gr} 0 0 1 ${gr * Math.sin(ga)} ${-gr * Math.cos(ga)}`, { stroke: PH.land, 'stroke-width': 6, 'stroke-linecap': 'butt' });
+  phSprite(rim(-9), 'house', { s: .25 }); phSprite(rim(7), 'tree', { s: .22 });   // the narration's buildings, trees and you
   const you = rim(0);
-  phPerson(you, { s: .17 });
+  phPerson(you, { s: .25 });
   clockRun(t => put(E._spin, { r: ESPIN * t }), D);
   return { E, you };
 }
@@ -80,7 +82,7 @@ const BEATS = [
   const w = cam.world;
   phHills(w, { y: 470, amp: 30, x0: -1400, x1: 3000, fill: PH.hill2, seed: 2 });
   phBlock(w, -1400, 520, 4400, 1200, PH.grass, { top: 6, ol: 0 });
-  phTree(w, { x: -200, y: 540, s: 1.3 }); phTree(w, { x: 1820, y: 548, s: 1.2, kind: 1 });
+  phSprite(w, 'tree', { x: -200, y: 540 }); phSprite(w, 'tree', { x: 1820, y: 548 });
   const X0 = 200, U = 120, TY = 600, R = 40, xm = v => X0 + U * v;
   const track = G(w);
   phBlock(track, X0 - 30, TY, U * 10 + 60, 16, '#8a6f55', { top: 4, ol: 2 });
@@ -137,7 +139,7 @@ const BEATS = [
     put(earth, { x: 800 + 140 * Math.cos(a), y: 395 + 140 * Math.sin(a) });
     put(sun._rays, { r: 8 * t });
     const d = Math.min(260, Math.max(0, t - ty) * 85);
-    put(you, { x: 1160 + d }); phPose(you, d > 0 && d < 260 ? 'walk' : 'stand', d / 24);
+    put(you, { x: 1160 + d }); phPose(you, d > 0 && d < 260 ? 'walk' : 'stand', d / 22 * Math.PI);
   }, D);
 }],
 ['roadside', 'Standing by the road', (m, D) => {
@@ -146,16 +148,16 @@ const BEATS = [
   const road = phRoad(cam);
   const you = phPerson(road.side, { x: 760, y: ROAD.side, o: 0 });
   show(you, m('stand'));
-  show(phLabel(road.front, 'you', { x: 760, y: 272, fill: PH.you, o: 0 }), m('stand'));
-  const truck = phTruck(road.vehicles, { y: ROAD.far, s: .85 });
-  const tl = phLabel(road.front, `truck: ${speedStr(V)}`, { y: 380, fill: PH.truck, o: 0 });
+  show(phLabel(road.front, 'you', { x: 760, y: 336, fill: PH.you, o: 0 }), m('stand'));
+  const truck = phTruck(road.vehicles, { y: ROAD.far });
+  const tl = phLabel(road.front, `truck: ${speedStr(V)}`, { y: 350, fill: PH.truck, o: 0 });
   fromTag(p, 'you, by the road', m('speed'));
-  pop(phPin(road.front, { x: 760, y: 236, s: 0, o: 0 }), m('speed'));
+  pop(phPin(road.front, { x: 760, y: 304, s: 0, o: 0 }), m('speed'));
   show(tl, m('speed'));
   const t0 = m('truck', -.3);
   clockRun(t => {
     const x = -250 + V * Math.max(0, t - t0);
-    put(truck, { x }); phRoll(truck, x / .85); put(tl, { x: x + 10 });
+    put(truck, { x }); phRoll(truck, x); put(tl, { x: x + 10 });
   }, D);
 }],
 ['incar', 'Riding beside the truck', (m, D) => {
@@ -166,25 +168,25 @@ const BEATS = [
   const xw = t => -330 + V * Math.max(0, t - tc);            // world position of the truck and the car (side by side)
   // Hard cut at "ride": the camera now rides in the car (locked on it, a little closer, with a light road shake).
   cam.cut({ x: t => xw(t) + 10, y: 600, z: 1.15 }, r0);
-  phPerson(road.side, { shirt: PH.friend, x: FR, y: ROAD.side });
-  const truck = phTruck(road.vehicles, { y: ROAD.far, s: .85 });
+  phPerson(road.side, { role: 'friend', x: FR, y: ROAD.side });
+  const truck = phTruck(road.vehicles, { y: ROAD.far });
   const car = phCar(road.vehicles, { y: ROAD.near });
   // Speed labels live in screen space and are kept inside the frame (cam.track); wrappers fade them in.
   const tag = (fill, t0) => { const g = G(p, { o: 0 }); show(g, t0); return phLabel(g, '', { fill }); };
   const fl = tag(PH.friend, .4), tl = tag(PH.truck, tc + 1.6), cl = tag(PH.car, tc + 1.6);
   const sl = phLabel(p, 'road and trees: ← 30 mph', { x: 70, y: 862, size: 30, fill: COL.dim, anchor: 'start', o: 0 });
   show(sl, m('back'));
-  const pinA = phPin(road.side, { x: FR, y: 236, o: 0 }), pinB = phPin(car, { x: 30, y: -112, s: 0, o: 0 });
+  const pinA = phPin(road.side, { x: FR, y: 304, o: 0 }), pinB = phPin(car, { x: 30, y: -112, s: 0, o: 0 });
   show(pinA, .3); hide(pinA, r0, 0); pop(pinB, r0 + .3);
   const tagA = fromTag(p, 'the roadside', .3);
   hide(tagA, r0, 0); fromTag(p, 'your car', r0, 0, 800);   // bottom: the friend slides through the top
   clockRun(t => {
     const x = xw(t), camV = t < r0 ? 0 : V, rel = t < tc ? 0 : V - camV;
     put(truck, { x }); put(car, { x: x + 10 });
-    phRoll(truck, (x + 330) / .85); phRoll(car, x + 330);
-    fl.textContent = `friend: ${speedStr(-camV)}`; cam.track(fl, FR, 272, t);
-    tl.textContent = `truck: ${speedStr(rel)}`; cam.track(tl, x + 10, 380, t);
-    cl.textContent = `your car: ${speedStr(rel)}`; cam.track(cl, x + 10, ROAD.bot + 56, t);
+    phRoll(truck, x + 330); phRoll(car, x + 330);
+    phText(fl, `friend: ${speedStr(-camV)}`); cam.track(fl, FR, 336, t);
+    phText(tl, `truck: ${speedStr(rel)}`); cam.track(tl, x + 10, 350, t);
+    phText(cl, `your car: ${speedStr(rel)}`); cam.track(cl, x + 10, ROAD.bot + 56, t);
   }, D);
 }],
 ['rule', 'Motion is relative', (m, D) => {
@@ -194,15 +196,15 @@ const BEATS = [
     const cam = camera(p, D, { box, x: 1200, y: 560, z: .45 });
     if (ride) cam.cut({ x: t => splitX(t) + 10 }, 0);
     const r = phRoad(cam, { hills: false });
-    phPerson(r.scenery, { shirt: PH.friend, x: 480, y: ROAD.side });
-    if (!ride) phPin(r.scenery, { x: 480, y: 296, s: 1.1 });
-    const truck = phTruck(r.vehicles, { y: ROAD.far, s: .85 }), car = phCar(r.vehicles, { y: ROAD.near });
+    phPerson(r.scenery, { role: 'friend', x: 480, y: ROAD.side });
+    if (!ride) phPin(r.scenery, { x: 480, y: 330, s: 1.1 });
+    const truck = phTruck(r.vehicles, { y: ROAD.far }), car = phCar(r.vehicles, { y: ROAD.near });
     if (ride) phPin(car, { x: 30, y: -112, s: 1.4 });
-    const lab = phLabel(r.front, ride ? 'truck: 0 mph' : 'truck: 30 mph →', { y: 380, size: 56, fill: PH.truck });
+    const lab = phLabel(r.front, ride ? 'truck: 0 mph' : 'truck: 30 mph →', { y: 340, size: 56, fill: PH.truck });
     clockRun(t => {
       const x = splitX(t);
       put(truck, { x }); put(car, { x: x + 10 }); put(lab, { x: x + 10 });
-      phRoll(truck, x / .85); phRoll(car, x);
+      phRoll(truck, x); phRoll(car, x);
     }, D);
     put(cam.el, { o: 0 }); show(cam.el, t0);
     show(phLabel(p, title, { x: box[0] + 24, y: box[1] + box[3] - 22, size: 28, fill: PH.ref, anchor: 'start', o: 0 }), t0);
@@ -226,7 +228,7 @@ const BEATS = [
   for (let i = 0; i < 40; i++) { const k = 2 + 3 * phHash(i, 5); mk('rect', { x: -1400 + 4400 * phHash(i, 1), y: -1000 + 2900 * phHash(i, 2), width: k, height: k, fill: COL.chalk, opacity: .3 + .5 * phHash(i, 3) }, stars); }
   const { you } = earthWorld(cam, D);
   clockRun(t => { const k = Math.min(1, Math.max(0, (cam.at(t).z - 1.6) / 2)); put(sky, { o: k }); put(stars, { o: 1 - k }); }, D);
-  const rimRing = mk('rect', { x: -16, y: -40, width: 32, height: 44, rx: 6, fill: 'none', stroke: PH.ref, 'stroke-width': 2.5 }, you);
+  const rimRing = mk('rect', { x: -15, y: -36, width: 30, height: 40, rx: 6, fill: 'none', stroke: PH.ref, 'stroke-width': 2.5 }, you);
   put(rimRing, { o: 0 });
   const arcs = G(cam.world, { o: 0 });
   const arc = (a1, a2) => {
@@ -266,7 +268,7 @@ const BEATS = [
   const train = phCarriage(p, { x: 720, y: GY, w: 1000 });
   put(train, { o: 0 }); show(train, .2);
   const wl = train._wins[2], wx = 720 + wl;
-  phCarWin(train, 2, { shirt: COL.int, hair: '#2d1e16', x: wl - 24, y: -96, s: .6 });
+  phSprite(train, 'maya_seated', { x: wl - 20, y: -144 });
   phBlock(train, wl - 4, -152, 66, 9, '#8a6a4c', { top: 3, ol: 2 });
   phBlock(train, wl + 32, -186, 14, 34, '#86c9e8', { top: 0, right: 4, ol: 2 });
   phBlock(train, wl + 34, -194, 10, 8, COL.whole, { top: 0, ol: 2 });
@@ -276,8 +278,8 @@ const BEATS = [
   phLabel(p, 'train: 60 mph →', { x: 520, y: GY - 300, size: 30, fill: COL.real });
   phBlock(p, 1260, GY + 8, 340, 110, '#4a524f', { top: 6, ol: 2 });
   mk('rect', { x: 1260, y: GY + 8, width: 340, height: 6, fill: COL.int }, p);
-  phPerson(p, { shirt: COL.nat, x: 1430, y: GY + 18 });
-  phLabel(p, 'Leo, on the platform', { x: 1430, y: GY - 172, size: 26, fill: COL.nat });
+  phPerson(p, { role: 'friend', x: 1430, y: GY + 18 });
+  phLabel(p, 'Leo, on the platform', { x: 1430, y: GY - 124, size: 26, fill: COL.nat });
 }, { ask: done => quiz(Q_CARD, [
   { id: 'c-maya', prompt: ['Measured from ', h('b', '', 'Maya'), ', how fast is the water bottle on her table moving?'],
     build: choice([['0 mph'], ['60 mph'], ['120 mph']], 0,
