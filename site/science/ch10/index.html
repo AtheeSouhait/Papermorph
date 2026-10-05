@@ -27,6 +27,8 @@ const TY = { title: 100, rule: 40, value: 40, label: 30, note: 26 };   // the ty
 const N = 40;                                             // force arrows: 40 px per newton (scaled per scene where noted)
 
 /* ---------- actors and light context ---------- */
+// Light tufts on the grass band: with a following camera they show the motion.
+const marks = (p, y, x0, x1) => { for (let x = x0; x < x1; x += 140) mk('rect', { x, y: y + 18, width: 24, height: 8, fill: lt(PH.grass, .2) }, p); };
 const park = (p, xs = [90, 1530]) => xs.forEach(x => phSprite(p, 'tree', { x, y: GY + 2 }));
 function rink(p) {          // an ice rink: boards behind, a red centre line
   phBlock(p, 0, GY, 1600, 110, '#cfe8f3', { top: 8, ol: 0 });
@@ -105,8 +107,7 @@ const BEATS = [
   cam.cut({ x: t => Math.max(800, P0 + dP(t) + 500) }, 0).to({ x: t => Q0 + dQ(t) - 300 }, t2 - .15, 1.1).to({ x: t => Math.max(800, P0 + dP(t) + 500) }, td, 1.1);
   // The pushing cart and its labels cover x 450..2450: no tree there, so nothing shows through it. Tufts on the grass show the motion.
   [2650, 4300, 5000].forEach(x => phSprite(w, 'tree', { x, y: Y + 2, s: 1.6 }));
-  ground(w, Y, -800, 6400);
-  for (let x = -600; x < 5600; x += 140) mk('rect', { x, y: Y + 18, width: 24, height: 8, fill: lt(PH.grass, .2) }, w);
+  ground(w, Y, -800, 6400); marks(w, Y, -600, 5600);
   const pa = phActor(w, 'you', { y: Y, s: S, anim: 'push' }), pc = phSprite(w, 'cart', { y: Y, s: CS }), f1 = forceArrow(w, { w: 14 });
   const lab = phLabel(w, '', { size: 36, fill: FORCE, anchor: 'start' }), note = T(w, 'longer arrow = bigger push', { size: 28, fill: COL.dim, weight: 500, o: 0 });
   const qa = phActor(w, 'friend', { y: Y, s: S, anim: 'pull' }), qc = phSprite(w, 'cart', { y: Y, s: CS }), rope = path(w, '', { stroke: '#c9b38d', 'stroke-width': 8 }), f2 = forceArrow(w, { w: 14, size: 36 });
@@ -325,7 +326,7 @@ const BEATS = [
   show(ig, ti);
   // one slow, steady glide across the whole beat: constant velocity, nothing pushing it
   clockRun(t => { const x = 960 + 26 * t; put(puck, { x, y: 560 }); arrowAt(pv, x + 60, 540, 130, 0, 24); }, D);
-}],
+}, { lead: false }],
 ['mass', 'More mass, more inertia', (m, D) => {
   const p = panel(0), S = 2.4, LA = 400, LB = 820, tc = m('catch'), V = 400, X0 = -60;
   // Two lanes, the same speed: the tennis ball is stopped in the hand; the basketball carries the catcher back.
@@ -374,7 +375,7 @@ const BEATS = [
     arrowAt(vw, a + R + 8, 400, before ? 100 : 0, 0, 22); arrowAt(vr, b + R + 8, 400, before ? 0 : 100, 0, 22);
     put(lw, { x: a, y: 540 }); phText(lw, before ? P : '0'); put(lr, { x: b, y: 540 }); phText(lr, before ? '0' : P);
   }, D);
-}],
+}, { lead: false }],
 ['q2', 'Quick check', (m, D) => {
   const p = panel(0), Y = 480, R = 56;
   ground(p, Y);
@@ -402,102 +403,111 @@ const BEATS = [
 }],
 /* ---------- part 3: Newton's second law ---------- */
 ['part3', 'Part 3 · The second law', (m, D) => {
-  const p = panel(0);
-  ground(p); park(p, [1250, 1500]);
-  const ps = pusher(p, 'you'), f = forceArrow(p), a = forceArrow(p, { color: ACC, w: 8 });
-  clockRun(t => { const d = 18 * t * t, hx = ps.at(300 + d, d); f.set(hx + 20, GY - 130, 110, 0, 'force', 0, 2); a.set(hx + 20, GY - 210, 90, 0, 'acceleration', 0, 2); }, D);
-  const g = G(p, { o: 0, y: 24 });
-  T(g, 'Chapter 10 · Force and Newton’s laws', { x: 800, y: 130, size: 28, fill: COL.dim, anchor: 'middle' });
-  phLabel(g, 'The Second Law', { x: 800, y: 250, size: TY.title, weight: 600 });
-  tw(g, { o: 1, y: 0 }, .2, 1.1, out);
-  txt(p, 'Part 3 · Force, mass, and acceleration', 800, 320, m('q'), { size: 36, fill: COL.dim });
-}],
+  const p = panel(0), Y = Y1, S = 3, CW = 112 * 2.5, d = t => 16 * t * t;
+  // You push the cart and it speeds up; the camera keeps you in place, the grass marks slide back.
+  const cam = camera(p, D), w = cam.world; cam.cut({ x: t => 800 + d(t) }, 0);
+  ground(w, Y, -400, 2400); marks(w, Y, -400, 2400);
+  const a = phActor(w, 'you', { y: Y, s: S, anim: 'push' }), c = phSprite(w, 'cart', { y: Y, s: 2.5 }), f = forceArrow(w, { w: 14, size: 36 }), ac = forceArrow(w, { color: ACC, w: 12, size: 34 });
+  clockRun(t => {
+    put(a, { x: 300 + d(t) }); a.stride('push', d(t) / S); const [hx, hy] = a.hand('F'); put(c, { x: hx + CW / 2 - 6 });
+    f.set(hx - 6, hy - 6, 200, 0, 'force', 0, 2); ac.set(hx + 40, hy - 120, 160, 0, 'acceleration', 0, 2);
+  }, D);
+  opener(p, 1180, 470, 'Part 3', 'The Second Law');
+  thought(p, [60, 70, 860, 230], 330, ['How much does a force change', 'an object’s motion?'], m('q'));
+}, { lead: false }],
 ['law2', 'a = F ÷ m', (m, D) => {
-  const p = panel(0);
-  const y = 160;
-  show(T(p, 'acceleration =', { x: 600, y: y + 14, size: 50, weight: 700, anchor: 'end', fill: ACC, o: 0 }), m('law'));
-  show(wfrac(p, 'net force', 'mass', 740, y, { size: 46, ct: FORCE }), m('law', .3));
-  const re = runs(p, [['net force', FORCE], [' = mass × ', COL.chalk], ['acceleration', ACC]], { x: 1180, y: y + 14, size: 40, weight: 700 });
-  show(re, m('rearr'));
-  // Same 2 kg crate, 4 N and 8 N: double the force, double the acceleration (2 and 4 m/s²). The scale is chosen so the
-  // faster crate reaches the far end exactly when the beat ends: both keep accelerating the whole time.
-  const t0 = m('more', -.4), U = 2 * 1100 / (4 * (D - t0) ** 2);
-  const rows = [[400, 4, 2], [640, 8, 4]].map(([yy, F, a]) => {
-    phBlock(p, 100, yy, 1400, 10, PH.walk, { top: 0, ol: 0 });
-    return { c: crate(p, { y: yy, w: 110, h: 90, label: '2 kg' }), f: forceArrow(p), aa: forceArrow(p, { color: ACC, w: 8 }), F, a, yy };
+  const p = panel(0), tl = m('law'), tm = m('more');
+  // The law alone and large first; then it moves up as a line and two 2 kg crates show it: 4 N and 8 N, 2 and 4 m/s².
+  const big = G(p, { o: 0 });
+  T(big, 'acceleration', { x: 560, y: 470, size: 64, weight: 700, fill: ACC, anchor: 'end' }); T(big, '=', { x: 640, y: 470, size: 64, weight: 700, anchor: 'middle' });
+  T(big, 'net force', { x: 900, y: 420, size: 60, weight: 700, fill: FORCE, anchor: 'middle' }); mk('rect', { x: 720, y: 446, width: 360, height: 6, fill: COL.chalk }, big);
+  T(big, 'mass', { x: 900, y: 520, size: 60, weight: 700, anchor: 'middle' });
+  show(big, tl); hide(big, tm - .8, .4);
+  show(runs(p, [['acceleration', ACC], [' = ', COL.chalk], ['net force', FORCE], [' ÷ mass', COL.chalk]], { x: 800, y: 110, size: 44, weight: 700 }), tm - .5);
+  show(runs(p, [['net force', FORCE], [' = mass × ', COL.chalk], ['acceleration', ACC]], { x: 800, y: 170, size: 40, weight: 700 }), m('rearr'));
+  const t0 = tm - .4, U = 2 * 1100 / (4 * (D - t0) ** 2);    // the faster crate reaches the far end as the beat ends
+  const lanes = [[440, 4, 2], [760, 8, 4]].map(([y, F, a], i) => {
+    const g = G(p, { o: 0 }); show(g, tm - .5);
+    phBlock(g, 0, y, 1600, 12, PH.walk, { top: 0, ol: 0 });
+    txt(g, `${F} N ÷ 2 kg = ${a} m/s²`, 300, y + 70, tm + .8 + i * .8, { size: 36, weight: 600 });
+    return { c: crate(g, { y, w: 180, h: 150, label: '2 kg' }), f: forceArrow(g, { w: 14, size: 36 }), aa: forceArrow(g, { color: ACC, w: 12, size: 34 }), F, a, y };
   });
-  clockRun(t => rows.forEach(({ c, f, aa, F, a, yy }) => {
-    const u = Math.max(0, t - t0), x = 200 + U * a * u * u / 2;
-    put(c, { x }); f.set(x + 56, yy - 45, F * 22, 0, `${F} N`); aa.set(x - 55, yy - 120, a * 30, 0, `${a} m/s²`, 0, 0);
+  clockRun(t => lanes.forEach(({ c, f, aa, F, a, y }) => {
+    const u = Math.max(0, t - t0), x = 200 + U * a * u * u / 2, on = t > t0;
+    put(c, { x }); f.set(x - 96 - F * 30, y - 75, on ? F * 30 : 0, 0, `${F} N`); aa.set(x - 60, y - 190, on ? a * 50 : 0, 0, `${a} m/s²`);
   }), D);
-  txt(p, 'double the force → double the acceleration', 800, 820, m('more', .8), { size: TY.label });
+  txt(p, 'double the force → double the acceleration', 1100, 860, m('more', .8), { size: 34, weight: 600 });
 }, { lead: false }],
 ['cart', 'Same force, different mass', (m, D) => {
-  const p = panel(0);
-  const LA = 400, LB = 720, t0 = m('cart', -.6), aPx = 2 * 1050 / (D - t0) ** 2;   // the cart reaches the far end at the beat's end
-  [LA, LB].forEach(y => phBlock(p, 0, y, 1600, 10, PH.walk, { top: 0, ol: 0 }));
-  mk('rect', { x: 0, y: LB + 10, width: 1600, height: 90, fill: '#3a4541' }, p);   // the car lane is a parking lot
-  [300, 700, 1100, 1500].forEach(x => mk('rect', { x, y: LB + 24, width: 8, height: 60, fill: PH.line, opacity: .5 }, p));
-  const A = phActor(p, 'you', { y: LA, anim: 'push' }), cart = phSprite(p, 'cart', { y: LA });
-  const B = phActor(p, 'friend', { y: LB, anim: 'push' }), car = phCar(p, { y: LB });
-  const f1 = forceArrow(p), f2 = forceArrow(p), a1 = forceArrow(p, { color: ACC, w: 8 });
-  // fixed columns: identity on the left, the result on the right; the car's tiny acceleration is a number, not a stub arrow
-  phLabel(p, 'cart: 20 kg', { x: 80, y: LA - 200, size: TY.label, anchor: 'start' }); phLabel(p, 'car: 1,000 kg', { x: 80, y: LB - 200, size: TY.label, anchor: 'start' });
-  const why = G(p, { o: 0 });
-  phLabel(why, 'a = 200 N ÷ 20 kg = 10 m/s²', { x: 1520, y: LA - 200, size: TY.label, fill: ACC, anchor: 'end' }); phLabel(why, 'a = 200 N ÷ 1,000 kg = 0.2 m/s² (tiny)', { x: 1520, y: LB - 200, size: TY.label, fill: ACC, anchor: 'end' });
-  show(why, m('why'));
+  const p = panel(0), S = 2.2, LA = 400, LB = 820, t0 = m('cart', -.8), tc = .6;
+  // The same 200 N shove for the same 0.6 s on a 20 kg cart and a 1,000 kg car (50 times the mass): the cart leaves
+  // at speed, the car barely creeps. The arrows show only while the hands push.
+  const dx = (a, t) => { const u = Math.max(0, t - t0), k = Math.min(u, tc); return a * k * k / 2 + a * tc * Math.max(0, u - tc); };
+  phBlock(p, 0, LA, 1600, 12, PH.walk, { top: 0, ol: 0 });
+  mk('rect', { x: 0, y: LB, width: 1600, height: 80, fill: '#3a4541' }, p);
+  [300, 700, 1100, 1500].forEach(x => mk('rect', { x, y: LB + 14, width: 8, height: 52, fill: PH.line, opacity: .5 }, p));
+  const A = phActor(p, 'you', { x: 260, y: LA, s: S, anim: 'push' }), cart = phSprite(p, 'cart', { y: LA, s: S });
+  const B = phActor(p, 'friend', { x: 260, y: LB, s: S, anim: 'push' }), car = phCar(p, { y: LB, s: 1.6 });
+  const f1 = forceArrow(p, { w: 14, size: 36 }), f2 = forceArrow(p, { w: 14, size: 36 }), v1 = path(p, '', { stroke: VEL, 'stroke-width': 10 });
+  const m1 = phLabel(p, '20 kg', { size: 36 }), m2 = phLabel(p, '1,000 kg', { size: 36 });
+  const why = G(p, { o: 0 }); show(why, m('why'));
+  phLabel(why, 'a = 200 N ÷ 20 kg = 10 m/s²', { x: 900, y: 270, size: 44, fill: ACC });
+  phLabel(why, 'a = 200 N ÷ 1,000 kg = 0.2 m/s²', { x: 1120, y: 690, size: 44, fill: ACC }); phLabel(why, 'tiny', { x: 1120, y: 740, size: 34, fill: COL.dim, weight: 600 });
+  A.show('push', 0); B.show('push', 0);
+  const xa0 = A.hand('F')[0] + 112 * S / 2 - 6, xb0 = B.hand('F')[0] + 256 * 1.6 / 2 - 6;   // the cart and the car start against the hands
   clockRun(t => {
-    const u = Math.max(0, t - t0), da = aPx * u * u / 2, db = da / 50;
-    put(A, { x: 220 + da }); A.stride('push', da); const [ha] = A.hand('F'); put(cart, { x: ha + 52 });
-    f1.set(ha + 20, LA - 125, 120, 0, '200 N', 0, 0); a1.set(ha + 20, LA - 190, 100, 0, '');
-    put(B, { x: 200 + db, y: LB + Math.sin(t * 9) * 1.2 }); B.stride('push', db * 4); const [hb] = B.hand('F'); put(car, { x: hb + 126 }); phRoll(car, db);
-    f2.set(hb + 30, LB - 125, 120, 0, '200 N', 0, 0);
+    const u = t - t0, on = u > 0 && u < tc, d1 = dx(1000, t), d2 = dx(20, t);
+    put(A, { x: 260 + Math.min(d1, 1000 * tc * tc / 2) }); if (on) A.stride('push', d1 / S); else A.show(u > 0 ? 'stand' : 'push', 0);
+    const [ha, hya] = A.hand('F'), xa = xa0 + d1; put(cart, { x: xa });
+    f1.set(ha - 6, hya - 6, on ? 180 : 0, 0, '200 N', 0, -4); arrowAt(v1, xa + 140, LA - 220, u > tc ? 110 : 0, 0, 22);
+    put(m1, { x: xa, y: LA + 50 });   // each mass tag under its object
+    put(B, { x: 260 + Math.min(d2, 20 * tc * tc / 2) }); if (on) B.stride('push', d2 / S); else B.show(u > 0 ? 'stand' : 'push', 0);
+    const [hb, hyb] = B.hand('F'), xb = xb0 + d2; put(car, { x: xb }); phRoll(car, d2 / 1.6);
+    f2.set(hb - 6, hyb - 40, on ? 180 : 0, 0, '200 N', 0, -4); put(m2, { x: xb, y: LB + 54 });
   }, D);
-}],
+}, { lead: false }],
 ['calc', 'Net force = mass × acceleration', (m, D) => {
-  const p = panel(0);
-  phBlock(p, 0, 640, 1600, 10, PH.walk, { top: 0, ol: 0 });
-  const car = phCar(p, { y: 640 }), f = forceArrow(p, { w: 12, size: TY.label }), aa = forceArrow(p, { color: ACC, w: 8 });
-  const ml = phLabel(p, '2,000 kg', { size: TY.label });
-  const y = 180;
-  show(runs(p, [['net force', FORCE], [' = mass × ', COL.chalk], ['acceleration', ACC]], { x: 800, y, size: 46, weight: 700 }), m('f'));
-  show(runs(p, [['= 2,000 kg × 3 ', COL.chalk], ['m/s²', ACC]], { x: 800, y: y + 70, size: 46, weight: 700 }), m('f', 1.6));
-  const ans = T(p, '= 6,000 N', { x: 800, y: y + 150, size: 64, weight: 700, fill: FORCE, anchor: 'middle', o: 0 });
+  const p = panel(0), RY = 560, t0 = m('ex'), aPx = 40, cx = t => { const u = Math.max(0, t - t0); return 600 + aPx * u * u / 2; };
+  // The worked example on the car itself: the camera follows it (the lane marks slide back), the sum reads under it.
+  const cam = camera(p, D), w = cam.world, road = cam.layer(1, 320); cam.cut({ x: t => cx(t) + 100 }, 0);
+  mk('rect', { x: 0, y: RY, width: 2240, height: 80, fill: '#3a4541' }, road);
+  for (let x = 0; x < 2240; x += 320) mk('rect', { x, y: RY + 36, width: 120, height: 8, fill: PH.line, opacity: .6 }, road);
+  const car = phCar(w, { y: RY, s: 2.4 }), ml = phLabel(w, '2,000 kg', { size: 44 }), aa = forceArrow(w, { color: ACC, w: 12, size: 36 }), f = forceArrow(w, { w: 16, size: 36 });
+  show(runs(p, [['net force', FORCE], [' = mass × ', COL.chalk], ['acceleration', ACC]], { x: 700, y: 720, size: 46, weight: 700 }), m('f'));
+  show(runs(p, [['= 2,000 kg × 3 ', COL.chalk], ['m/s²', ACC]], { x: 640, y: 790, size: 46, weight: 700 }), m('f', 1.6));
+  const ans = T(p, '= 6,000 N', { x: 900, y: 790, size: 56, weight: 700, fill: FORCE, anchor: 'start', o: 0 });
   pop(put(ans, { s: .6 }), m('ans'));
-  const t0 = m('ex'), aPx = 2 * 900 / (D - t0) ** 2;          // accelerates through the whole worked example
   clockRun(t => {
-    const u = Math.max(0, t - t0), x = 300 + aPx * u * u / 2;
-    put(car, { x }); phRoll(car, x); put(ml, { x, y: 500 });
-    aa.set(x - 80, 470, 90, 0, '3 m/s²'); f.set(x + 125, 590, t > m('ans') ? 150 : 0, 0, '6,000 N', 0, -24);
+    const x = cx(t), on = t > t0; put(car, { x }); phRoll(car, (x - 600) / 2.4);
+    put(ml, { x, y: 290 }); aa.set(x - 100, 230, on ? 200 : 0, 0, '3 m/s²');
+    f.set(x + 330, RY - 120, on ? 160 : 0, 0, t > m('ans') ? '6,000 N' : '');   // the net force pushes the whole time it speeds up
   }, D);
 }, { lead: false }],
 ['wind', 'With and against the wind', (m, D) => {
-  const p = panel(0);
-  const tw1 = m('with'), ta = m('against');
-  // Follow camera on the bike. Phase 1 (with the wind): 4 → 8 m/s; phase 2 (against): 8 → 2 m/s. 30 px/s = 1 m/s.
+  const p = panel(0), tw1 = m('with'), ta = m('against');
+  // Follow camera on the bike. With the wind: 4 → 8 m/s; against it: 8 → 2 m/s (30 px/s = 1 m/s).
   const v = t => t < ta - .3 ? 4 + 4 * ramp(t, tw1, tw1 + 5) : 8 - 6 * ramp(t, ta, ta + 4.5);
   const xAt = t => { let x = 0; for (let u = 0; u < t; u += .05) x += v(u) * 30 * .05; return x; };   // deterministic sum over fixed steps
-  const cam = camera(p, D, { x: 800, y: 560 });
-  cam.cut({ x: t => 300 + xAt(t) + 120 }, 0);
-  const road = phRoad(cam), bike = phBike(road.vehicles, 'you');
-  const vv = path(road.front, '', { stroke: VEL, 'stroke-width': 8 }), wf = forceArrow(road.front);
-  const vl = G(p), vlab = phLabel(vl, '', { size: 30, fill: VEL });
+  const cam = camera(p, D, { x: 800, y: 560 }); cam.cut({ x: t => 300 + xAt(t) + 300 }, 0);
+  const road = phRoad(cam), bike = phBike(road.vehicles, 'you', { s: 2 });
+  const vv = forceArrow(road.front, { color: VEL, w: 12, size: 32 }), wf = forceArrow(road.front, { w: 14, size: 32 }), nf = forceArrow(road.front, { color: NETF, w: 18, size: 30 });
   const streaks = G(p, { o: .5 }), sl = Array.from({ length: 9 }, () => path(streaks, '', { stroke: COL.chalk, 'stroke-width': 4 }));
-  const tag = phLabel(p, '', { x: 800, y: 120, size: 40 });
+  const tag = phLabel(p, '', { x: 1180, y: 460, size: 48 });
   clockRun(t => {
-    const d = xAt(t), x = 300 + d, sp = v(t), dir = t < ta - .3 ? 1 : -1;
-    put(bike, { x, y: ROAD.near }); bike.ride(d);
-    arrowAt(vv, x - 50, ROAD.near - 200, sp * 14, 0); wf.set(dir > 0 ? x - 170 : x + 170, ROAD.near - 110, t > tw1 - .3 ? 110 : 0, dir > 0 ? 0 : 180, 'wind', 0, -10);
-    phText(vlab, `velocity: ${sp.toFixed(1)} m/s →`); cam.track(vlab, x, ROAD.near - 230, t);
-    phText(tag, t < tw1 ? '' : dir > 0 ? 'wind at your back: net force forward → speed up' : 'against the wind: net force backward → slow down');
+    const d = xAt(t), x = 300 + d, sp = v(t), dir = t < ta - .3 ? 1 : -1, windy = t > tw1 - .3;
+    put(bike, { x, y: ROAD.near }); bike.ride(d / 2);
+    vv.set(x - 80, ROAD.near - 360, sp * 30, 0, `velocity ${sp.toFixed(1)} m/s`, 0, 2);
+    wf.set(dir > 0 ? x - 330 : x + 330, ROAD.near - 200, windy ? 140 : 0, dir > 0 ? 0 : 180, 'wind', 0, 2);
+    nf.set(dir > 0 ? x - 60 : x + 100, ROAD.near + 60, windy ? 160 : 0, dir > 0 ? 0 : 180, 'net force', 0, 66);
+    phText(tag, !windy ? '' : dir > 0 ? 'same way → speed up' : 'opposite → slow down');
     sl.forEach((e, i) => { const yy = 200 + 70 * i, xx = ((i * 337 + 900 * t * dir) % 1800 + 1800) % 1800 - 100; e.setAttribute('d', `M${xx} ${yy}h${70 * dir}`); });
   }, D);
 }],
 ['q3', 'Quick check', (m, D) => {
-  const p = panel(0);
-  phBlock(p, 0, 440, 1600, 10, PH.walk, { top: 0, ol: 0 });
-  const c = crate(p, { x: 600, y: 440, label: '2 kg' }), f = forceArrow(p, { w: 11 }), a = forceArrow(p, { color: ACC, w: 8 });
-  f.set(680, 380, 200, 0, '10 N'); a.set(520, 270, 110, 0, '? m/s²');
+  const p = panel(0), y = 470;
+  phBlock(p, 300, y, 1000, 12, PH.walk, { top: 0, ol: 0 });
+  crate(p, { x: 800, y, w: 240, h: 200, label: '2 kg' });
+  forceArrow(p, { w: 16, size: 40 }).set(434, y - 100, 240, 0, '10 N'); forceArrow(p, { color: ACC, w: 12, size: 38 }).set(720, y - 240, 200, 0, '? m/s²');
 }, { ask: done => quiz(Q_CARD, [
   { id: 'c-a', prompt: ['A 10 newton net force pushes a 2 kilogram box. What is its ', h('b', '', 'acceleration'), '?'],
     build: blanks([{ parts: ['acceleration = 10 ÷ 2 = ', { box: '5' }, ' meters per second squared'], why: 'acceleration = net force ÷ mass = 10 ÷ 2 = 5.', hint: 'acceleration = net force ÷ mass.' }]) },
@@ -509,18 +519,11 @@ const BEATS = [
       [null, 'The truck has far more mass, so the same force gives it less acceleration.', 'Same force, different masses: different accelerations.']) },
 ], done) }],
 ['wrap3', 'Summary · Second law', (m, D) => {
-  const p = panel(0);
-  txt(p, 'Newton’s second law', 800, 140, .2, { size: 40, fill: COL.dim });
-  [['acceleration = net force ÷ mass', 'w1'],
-   ['net force = mass × acceleration (newtons = kg × m/s²)', 'w2'],
-   ['Net force with the motion: speed up; against it: slow down.', 'w3']].forEach(([s, mark], i) => {
-    const g = G(p, { x: -16, y: 290 + i * 130, o: 0 });
-    mk('rect', { x: 144, y: -38, width: 52, height: 52, rx: 6, fill: PH.ref }, g);
-    T(g, String(i + 1), { x: 170, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
-    T(g, s, { x: 230, size: 36, weight: 600 });
-    tw(g, { o: 1, x: 0 }, m(mark), .6);
-  });
-  txt(p, 'Next: Newton’s third law.', 800, 760, m('end'), { size: 32, fill: COL.dim, weight: 500 });
+  summary(panel(0), m, [
+    [['acceleration = net force ÷ mass'], g => { crate(g, { x: 220, y: 40, w: 120, h: 100 }); forceArrow(g, { w: 10 }).set(284, -10, 80, 0, ''); forceArrow(g, { color: ACC, w: 8 }).set(180, -90, 70, 0, ''); }],
+    [['net force = mass × acceleration', '(newtons = kilograms × m/s²)'], g => { phLabel(g, 'F = m × a', { x: 240, y: 10, size: 36 }); }],
+    [['Net force with the motion: speed up;', 'against it: slow down.'], g => { phBike(g, 'you', { x: 230, y: 50, s: .8 }); forceArrow(g, { w: 8 }).set(80, -40, 70, 0, ''); }],
+  ], 'Next: Newton’s third law.');
 }],
 /* ---------- part 4: Newton's third law ---------- */
 ['part4', 'Part 4 · The third law', (m, D) => {
