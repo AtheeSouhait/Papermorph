@@ -82,7 +82,7 @@ const NS = 'http://www.w3.org/2000/svg';
 const COL = { nat: '#f4a48c', whole: '#86c9e8', int: '#f3c95c', rat: '#e8a0c8', irr: '#8fd6b0', real: '#bba8ee',
   chalk: '#ece8dc', dim: '#9aaba3', faint: '#5d7068', task: '#f0b45a', good: '#8fd6b0', bad: '#f08c7a', board: '#1d2b27' };
 const UI = '"Avenir Next","Segoe UI","Helvetica Neue",Arial,sans-serif';
-const MATH = '"STIX Two Text","Cambria Math","Iowan Old Style",Palatino,Georgia,serif';
+const MATH = UI;   // science book: one face for numbers and formulas in demos and questions
 const NAME = { nat: 'Natural', whole: 'Whole', int: 'Integers', rat: 'Rational', irr: 'Irrational', real: 'Real' };
 // Card positions inside the 1600×900 picture.
 const BAND = { x: 96, y: 686, w: 1408, cls: 'band' };      // bottom band (moves up when taller than the space left)

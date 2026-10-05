@@ -25,10 +25,11 @@ function phBlock(p, x, y, w, h, c, { top = 4, right = 0, bottom = 0, ol = OL } =
   if (ol) mk('rect', { x, y, width: w, height: h, fill: 'none', ...phLine(ol) }, p);
 }
 
-// Text with a dark backing stroke, so it stays legible when something passes behind it.
+// Text with a thin dark outline, so it stays legible when something passes behind it.
 function phLabel(p, str, { x = 0, y = 0, size = 30, fill = COL.chalk, anchor = 'middle', weight = 700, o = 1 } = {}) {
   const t = T(p, str, { x, y, size, fill, anchor, weight, o });
-  t.setAttribute('stroke', COL.board); t.setAttribute('stroke-width', size / 4); t.setAttribute('paint-order', 'stroke');
+  // A thin, capped outline keeps small labels legible over pictures; titles (72 px and up) sit on clean board and get none.
+  if (size < 72) { t.setAttribute('stroke', COL.board); t.setAttribute('stroke-width', Math.min(5, size * .16)); t.setAttribute('paint-order', 'stroke'); }
   t.setAttribute('stroke-linejoin', 'round');
   return t;
 }
