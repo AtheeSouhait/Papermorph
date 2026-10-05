@@ -163,7 +163,7 @@ const BEATS = [
 ['incar', 'Riding beside the truck', (m, D) => {
   const p = panel(0);
   const cam = camera(p, D);
-  const road = phRoad(cam);
+  const road = phRoad(cam, { trees: [300, 800, 1900] });   // no tree behind the friend (1100) or the friend's label
   const FR = 1100, tc = m('car', .3), r0 = m('ride');
   const xw = t => -330 + V * Math.max(0, t - tc);            // world position of the truck and the car (side by side)
   // Hard cut at "ride": the camera now rides in the car (locked on it, a little closer, with a light road shake).
