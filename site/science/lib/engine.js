@@ -1573,7 +1573,10 @@ function start(i, play) {
   evalTo(0);
   const a = P.audio = new Audio(`audio/${CHAPTER.language || 'en'}/${BEATS[i].id}.mp3`);
   a.preload = 'auto';
-  a.onerror = () => { if (P.audio === a) soundFailed(); };
+  // An aborted or superseded load (fast stepping, a reload) is not a failure: only a real error for the current clip
+  // shows the note, and the note goes away as soon as a clip plays.
+  a.onerror = () => { if (P.audio === a && a.error && a.error.code !== MediaError.MEDIA_ERR_ABORTED) soundFailed(); };
+  a.onplaying = () => { if (P.audio === a) $('soundNote').hidden = true; };
   const b = BEATS[i];
   if (b.ask) b.ask(() => { if (P.i === i) { evalTo(Infinity); start(i + 1, true); } });
   setPlaying(play);
@@ -1604,7 +1607,7 @@ function frame(now) {
     // While the clip plays, its clock drives the picture; before it starts or after it ends, wall time does.
     if (a && !P.afail && !a.ended) {
       if (a.currentTime > 0) { P.t = Math.max(P.t, a.currentTime); P.stall = 0; }
-      else if ((P.stall += dt) > 4) soundFailed();
+      else if ((P.stall += dt) > 8 && a.readyState < 2) soundFailed();   // still nothing to play after 8 s
     } else P.t += dt;
     evalTo(P.t);
     if (P.t >= P.end) beatDone();

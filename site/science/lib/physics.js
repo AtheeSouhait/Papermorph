@@ -66,3 +66,43 @@ function crate(p, { x = 0, y = 0, w = 150, h = 130, label = '' } = {}) {
   if (label) phLabel(g, label, { y: -h / 2 + 10, size: 30 });
   return g;
 }
+
+/* ---------- pixel actors (lib/actors.js, img/actor_<role>.png) ---------- */
+// One sprite sheet per role; a frame is chosen by the viewBox of a nested <svg>, so swapping frames never refetches
+// an image. The origin is the feet centre; face(-1) mirrors. Stride tables keep feet from skating: STEP is the
+// distance (world px) the body moves per frame of each gait.
+const STEP = { walk: 11, run: 26, push: 10, pull: 10, stumble: 14, backstep: 13 };
+function phActor(p, role = 'you', { x = 0, y = 0, s = 1, o = 1, anim = 'stand' } = {}) {
+  const A = ACTORS, w = A.W * PX, h = A.H * PX, rows = Object.keys(A.anims).length, cols = Math.max(...Object.values(A.anims).map(a => a.n));
+  const g = G(p, { x, y, s, o }), inner = mk('g', {}, g);
+  const sv = mk('svg', { x: -A.X0 * PX, y: -h, width: w, height: h, viewBox: `0 0 ${w} ${h}` }, inner);
+  mk('image', { href: `../img/actor_${role}.png`, width: w * cols, height: h * rows, style: 'image-rendering: pixelated' }, sv);
+  return Object.assign(g, {
+    _dir: 1,
+    // Show frame k (wrapped) of an animation.
+    show(name, k = 0) {
+      const a = A.anims[name], f = ((Math.floor(k) % a.n) + a.n) % a.n, vb = `${f * w} ${a.row * h} ${w} ${h}`;
+      g._anim = name; g._f = f;
+      if (sv._vb !== vb) sv.setAttribute('viewBox', sv._vb = vb);
+      return g;
+    },
+    // A gait frame from the distance travelled, so the feet keep pace with the ground.
+    stride(name, dist) { return g.show(name, Math.abs(dist) / STEP[name]); },
+    face(dir) { if (dir !== g._dir) { g._dir = dir; if (dir < 0) inner.setAttribute('transform', 'scale(-1,1)'); else inner.removeAttribute('transform'); } return g; },
+    // World position of a hand ('F' front, 'B' back) in the current frame.
+    hand(which = 'F') { const st = g._st, [hx, hy] = A.anims[g._anim].hands[g._f][which]; return [st.x + hx * PX * st.s * g._dir, st.y + hy * PX * st.s]; },
+  }).show(anim);
+}
+// Our bicycle with spinning SVG wheels and a pedalling rider: bike.ride(dist) turns wheels and cranks.
+function phBike(p, role = 'you', o = {}) {
+  const g = G(p, o), B = ACTORS.bike, w = ACTORS.W * PX, h = ACTORS.H * PX;
+  const wheels = B.wheels.map(([wx, wy]) => {
+    const wg = G(g, { x: wx * PX + PX / 2, y: wy * PX }), r = B.r * PX;
+    mk('circle', { r, fill: 'none', stroke: '#2c3337', 'stroke-width': 7 }, wg);
+    path(wg, `M${-r} 0H${r}M0 ${-r}V${r}`, { stroke: '#9aa5a8', 'stroke-width': 3 });
+    return wg;
+  });
+  mk('image', { href: '../img/bicycle.png', x: -ACTORS.X0 * PX, y: -h, width: w, height: h, style: 'image-rendering: pixelated' }, g);
+  const rider = phActor(g, role, { anim: 'pedal' });
+  return Object.assign(g, { ride(dist) { const r = B.r * PX; wheels.forEach(wg => put(wg, { r: dist / r * 180 / Math.PI })); rider.show('pedal', dist / (2 * Math.PI * r * 1.5) * 8); return g; } });
+}
