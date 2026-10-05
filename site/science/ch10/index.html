@@ -20,16 +20,18 @@
 const CHAPTER = { number: 10, title: 'Force and Newton’s Laws of Motion', minutes: 13, language: 'en' };
 const Q_CARD = { x: 96, y: 586, w: 1408, cls: 'band' };   // a band card under the scenes; it moves up by itself when taller
 const GY = 560;                                           // ground line in side-view scenes
-const ground = p => { phBlock(p, 0, GY, 1600, 340, PH.grass, { top: 8, ol: 0 }); };
+// A ground band, not a slab: the space below stays free for values and notes.
+const ground = (p, y = GY) => { phBlock(p, 0, y, 1600, 70, PH.grass, { top: 8, ol: 0 }); mk('rect', { x: 0, y: y + 70, width: 1600, height: 6, fill: PH.grass, opacity: .5 }, p); };
+const TY = { title: 100, rule: 40, value: 40, label: 30, note: 26 };   // the type scale: title, rule, key values, labels, notes
 const N = 40;                                             // force arrows: 40 px per newton (scaled per scene where noted)
 
 /* ---------- actors and light context ---------- */
 const park = (p, xs = [90, 1530]) => xs.forEach(x => phSprite(p, 'tree', { x, y: GY + 2 }));
 function rink(p) {          // an ice rink: boards behind, a red centre line
-  phBlock(p, 0, GY, 1600, 340, '#cfe8f3', { top: 8, ol: 0 });
+  phBlock(p, 0, GY, 1600, 110, '#cfe8f3', { top: 8, ol: 0 });
   phBlock(p, 0, GY - 64, 1600, 64, '#eef5f7', { top: 0, ol: 0 });
   mk('rect', { x: 0, y: GY - 70, width: 1600, height: 8, fill: '#3f6f9e' }, p);
-  mk('rect', { x: 796, y: GY + 8, width: 8, height: 332, fill: '#d24b4b', opacity: .5 }, p);
+  mk('rect', { x: 796, y: GY + 8, width: 8, height: 102, fill: '#d24b4b', opacity: .5 }, p);
 }
 function goal(p, x) {       // a pixel soccer goal (side view)
   path(p, `M${x} ${GY}V${GY - 150}H${x + 90}`, { stroke: '#ece8dc', 'stroke-width': 10 });
@@ -62,31 +64,37 @@ const BEATS = [
 ['force', 'A push or a pull', (m, D) => {
   const p = panel(0);
   ground(p); park(p, [40, 1560]);
-  txt(p, 'A force is a push or a pull', 800, 110, .2, { size: 44 });
+  txt(p, 'A force is a push or a pull', 800, 110, .2, { size: TY.rule });
   const t1 = m('push'), t2 = m('pull'), ts = m('shape');
+  // Both carts speed up for as long as they are the subject; at "shape" the whole group freezes and dims together.
+  const aPush = 2 * 250 / (ts - t1) ** 2, aPull = 2 * 240 / (ts - t2) ** 2;
   const push = G(p), pull = G(p);
   const ps = pusher(push, 'you'), f1 = forceArrow(push);
   const pc = phSprite(pull, 'cart', { y: GY }), pa = phActor(pull, 'friend', { y: GY, anim: 'pull' }), rope = path(pull, '', { stroke: '#c9b38d', 'stroke-width': 5 }), f2 = forceArrow(pull);
-  T(push, 'push', { x: 330, y: 200, size: 32, weight: 700, fill: FORCE, anchor: 'middle' });
-  T(pull, 'pull', { x: 1100, y: 200, size: 32, weight: 700, fill: FORCE, anchor: 'middle' });
+  T(push, 'push', { x: 330, y: 200, size: TY.label, weight: 700, fill: FORCE, anchor: 'middle' });
+  T(pull, 'pull', { x: 1100, y: 200, size: TY.label, weight: 700, fill: FORCE, anchor: 'middle' });
   put(pull, { o: 0 }); show(pull, t2 - .2);
   const sizes = G(p, { o: 0 }), small = forceArrow(sizes), big = forceArrow(sizes);
-  small.set(360, 700, 2 * N, 0, '2 N'); big.set(860, 700, 6 * N, 0, '6 N');
-  T(sizes, 'longer arrow = bigger force; it points the way of the push or pull', { x: 800, y: 790, size: 30, fill: COL.chalk, anchor: 'middle' });
+  small.set(360, 720, 2 * N, 0, '2 N'); big.set(860, 720, 6 * N, 0, '6 N');
+  T(sizes, 'longer arrow = bigger force; it points the way of the push or pull', { x: 800, y: 800, size: TY.note, fill: COL.chalk, anchor: 'middle' });
   show(sizes, m('dir'));
-  const can = G(p, { o: 0 }), cs = phSprite(can, 'can', { x: 800, y: 760, s: 2 }), sq1 = forceArrow(can), sq2 = forceArrow(can);
-  show(can, ts); hide(sizes, ts - .3, .3); tw(push, { o: .35 }, ts, .4); tw(pull, { o: .35 }, ts, .4);
-  txt(p, 'a force can change a shape', 800, 860, ts + .3, { size: 30, fill: COL.chalk });
+  // The can is squeezed from above and below: it flattens step by step, then keeps its crushed shape.
+  const can = G(p, { o: 0 }), cg = G(can, { x: 800, y: 760 }), cs = phSprite(cg, 'can', { s: 2 }), sq1 = forceArrow(can), sq2 = forceArrow(can);
+  show(can, ts); hide(sizes, ts - .3, .3); tw(push, { o: .3 }, ts, .4); tw(pull, { o: .3 }, ts, .4);
+  txt(p, 'a force can change a shape', 800, 860, ts + .3, { size: TY.label, fill: COL.chalk });
   clockRun(t => {
-    const u = Math.max(0, t - t1), d = Math.min(250, 30 * u * u), hx = ps.at(150 + d, d, d > 0);
+    const tt = Math.min(t, ts), u = Math.max(0, tt - t1), d = aPush * u * u / 2, hx = ps.at(150 + d, d, u > 0);
     f1.set(hx + 20, GY - 140, t > t1 - .2 ? 110 : 0, 0, '');
-    const v = Math.max(0, t - t2), d2 = Math.min(260, 28 * v * v), x2 = 1150 + d2;
+    const v = Math.max(0, tt - t2), d2 = aPull * v * v / 2, x2 = 1150 + d2;
     put(pa, { x: x2 }); pa.stride('pull', d2);
     const [rx, ry] = pa.hand('F'), cx = rx - 150; put(pc, { x: cx });
     rope.setAttribute('d', `M${cx + 50} ${GY - 60}L${rx} ${ry}`); f2.set(cx + 60, GY - 120, t > t2 - .2 ? 100 : 0, 0, '');
-    const k = ramp(t, ts + .6, ts + 1.4), w = 60 + 70 * (1 - k);
-    phFrame(cs, k >= 1 ? 'can_crushed' : 'can');
-    sq1.set(800 - w - 90, 720, 90, 0, ''); sq2.set(800 + w + 90, 720, 90, 180, '');
+    const k = ramp(t, ts + .6, ts + 1.6), crushed = k >= 1, sy = 1 - .375 * k, sx = 1 + .4 * k, h = 128 * sy;
+    phFrame(cs, crushed ? 'can_crushed' : 'can');
+    cs._in.setAttribute('transform', crushed ? '' : `scale(${sx.toFixed(3)},${sy.toFixed(3)})`);
+    put(cg, { y: 760 - (128 - (crushed ? 80 : h)) / 2 });          // the can's centre stays put while it flattens
+    const top = 696 - (crushed ? 40 : h / 2), bot = 696 + (crushed ? 40 : h / 2);
+    sq1.set(800, top - 100, 90, 90, ''); sq2.set(800, bot + 100, 90, -90, '');
   }, D);
 }],
 ['net', 'Net force', (m, D) => {
@@ -94,19 +102,24 @@ const BEATS = [
   phBlock(p, 0, GY - 300, 1600, 300, '#26372f', { top: 0, ol: 0 });
   [200, 600, 1000, 1400].forEach(x => mk('rect', { x, y: GY - 300, width: 6, height: 300, fill: '#1f2e28' }, p));
   ground(p); crate(p, { x: 170, y: GY, w: 110, h: 90 }); crate(p, { x: 170, y: GY - 90, w: 90, h: 80 }); crate(p, { x: 1440, y: GY, w: 120, h: 100 });
-  txt(p, 'Net force: the total of all the forces on an object', 800, 110, .2, { size: 40 });
-  const c = crate(p, { x: 800, y: GY }), A = forceArrow(p), B = forceArrow(p), NF = forceArrow(p, { color: NETF, w: 14, size: 32 });
-  const ta = m('add'), ts = m('sub'), eq1 = runs(p, [['3 N + 2 N = ', COL.chalk], ['5 N →', NETF]], { x: 800, y: 790, size: 44, weight: 700 }),
-    eq2 = runs(p, [['5 N − 3 N = ', COL.chalk], ['2 N →', NETF]], { x: 800, y: 790, size: 44, weight: 700 });
-  show(eq1, ta + 3); hide(eq1, ts - .2, .2); show(eq2, ts + 3.5);
-  txt(p, 'same direction: add · opposite directions: subtract', 800, 860, m('netw'), { size: 30, fill: COL.dim, weight: 500 });
+  txt(p, 'Net force: the total of all the forces on an object', 800, 110, .2, { size: TY.rule });
+  const ta = m('add'), ts = m('sub');
+  // Two examples, each its own crate: it starts moving once the net force is shown and keeps speeding up while the
+  // forces act; the first example fades out before the second fades in.
+  const ex = [0, 1].map(k => { const g = G(p, { o: k ? 0 : 1 }); return { g, c: crate(g, { x: 800, y: GY }), A: forceArrow(g), B: forceArrow(g), NF: forceArrow(g, { color: NETF, w: 14, size: TY.label }) }; });
+  hide(ex[0].g, ts - .5, .4); show(ex[1].g, ts - .1, .4);
+  const eq1 = runs(p, [['3 N + 2 N = ', COL.chalk], ['5 N →', NETF]], { x: 800, y: 760, size: TY.value, weight: 700 }),
+    eq2 = runs(p, [['5 N − 3 N = ', COL.chalk], ['2 N →', NETF]], { x: 800, y: 760, size: TY.value, weight: 700 });
+  show(eq1, ta + 2.6); hide(eq1, ts - .5, .3); show(eq2, ts + 3.1);
+  txt(p, 'same direction: add · opposite directions: subtract', 800, 830, m('netw'), { size: TY.note, fill: COL.dim, weight: 500 });
+  const a1 = 2 * 120 / (ts - .5 - (ta + 2.5)) ** 2, a2 = 2 * 80 / (D - (ts + 3)) ** 2;
   clockRun(t => {
-    const phase = t < ts - .2 ? 1 : 2, u = phase === 1 ? t - ta : t - ts;
-    const slide = phase === 1 ? Math.min(60, Math.max(0, u - 3) * 20) : 60 + Math.min(30, Math.max(0, u - 3.5) * 10), x = 800 + slide;
-    put(c, { x });
-    if (t < ta) { A.set(0, 0, 0); B.set(0, 0, 0); NF.set(0, 0, 0); return; }
-    if (phase === 1) { A.set(x + 80, GY - 95, 3 * N, 0, '3 N'); B.set(x + 80, GY - 40, 2 * N, 0, '2 N', 0, 50); NF.set(x - 100, GY + 80, u > 2.5 ? 5 * N : 0, 0, 'net force', 0, 70); }
-    else { A.set(x + 80, GY - 70, 5 * N, 0, '5 N'); B.set(x - 80, GY - 70, 3 * N, 180, '3 N'); NF.set(x - 40, GY + 80, u > 3 ? 2 * N : 0, 0, 'net force', 0, 70); }
+    const u1 = Math.max(0, Math.min(t, ts - .5) - ta - 2.5), x1 = 800 + a1 * u1 * u1 / 2, e1 = ex[0];
+    put(e1.c, { x: x1 }); const on1 = t > ta;
+    e1.A.set(x1 + 80, GY - 95, on1 ? 3 * N : 0, 0, '3 N'); e1.B.set(x1 + 80, GY - 40, on1 ? 2 * N : 0, 0, '2 N', 0, 50); e1.NF.set(x1 - 100, GY + 105, t > ta + 2.5 ? 5 * N : 0, 0, 'net force', 0, -16);
+    const u2 = Math.max(0, t - ts - 3), x2 = 800 + a2 * u2 * u2 / 2, e2 = ex[1], on2 = t > ts - .1;
+    put(e2.c, { x: x2 });
+    e2.A.set(x2 + 80, GY - 70, on2 ? 5 * N : 0, 0, '5 N'); e2.B.set(x2 - 80, GY - 70, on2 ? 3 * N : 0, 180, '3 N'); e2.NF.set(x2 - 40, GY + 105, t > ts + 3 ? 2 * N : 0, 0, 'net force', 0, -16);
   }, D);
 }, { lead: false }],
 ['balance', 'Balanced and unbalanced', (m, D) => {
@@ -134,19 +147,20 @@ const BEATS = [
 }],
 ['newton', 'The newton', (m, D) => {
   const p = panel(0);
-  txt(p, 'Force is measured in newtons (N)', 800, 110, .2, { size: 44 });
+  txt(p, 'Force is measured in newtons (N)', 800, 110, .2, { size: TY.rule });
   phSprite(p, 'apple', { x: 520, y: 460, s: 3 });
   const ag = G(p, { o: 0 }); forceArrow(ag).set(520, 600, 125, -90, 'hand: 1 N', -100, 20); forceArrow(ag).set(520, 175, 125, 90, 'gravity: 1 N', 120, 20);
   show(ag, m('apple'));
-  txt(p, 'holding up an apple ≈ 1 N', 520, 680, m('apple', .4), { size: 32 });
+  txt(p, 'holding up an apple ≈ 1 N', 520, 680, m('apple', .4), { size: TY.label });
   const def = G(p, { o: 0 });
   runs(def, [['1 N', FORCE], [' = 1 kg × 1 ', COL.chalk], ['m/s²', ACC]], { x: 1150, y: 330, size: 56, weight: 700, o: 1 });
-  T(def, 'the force that gives 1 kg an acceleration of 1 m/s²', { x: 1150, y: 390, size: 26, fill: COL.dim, anchor: 'middle' });
+  T(def, 'the force that gives 1 kg an acceleration of 1 m/s²', { x: 1150, y: 390, size: TY.note, fill: COL.dim, anchor: 'middle' });
   show(def, m('def'));
   const blk = G(p, { o: 0 }), b = crate(blk, { w: 110, h: 90, label: '1 kg' }), fb = forceArrow(blk), ab = path(blk, '', { stroke: ACC, 'stroke-width': 8 });
-  phBlock(blk, 880, 600, 560, 10, PH.walk, { top: 0, ol: 0 });
+  phBlock(blk, 880, 600, 600, 10, PH.walk, { top: 0, ol: 0 });
   show(blk, m('def', .5));
-  clockRun(t => { const u = Math.max(0, t - m('def', .8)), x = 940 + Math.min(380, 40 * u * u); put(b, { x, y: 600 }); fb.set(x + 56, 555, 70, 0, '1 N'); arrowAt(ab, x - 40, 480, 80, 0); }, D);
+  const t0 = m('def', .8), aB = 2 * 380 / (D - t0) ** 2;      // the push lasts to the end: the block reaches the far end then
+  clockRun(t => { const u = Math.max(0, t - t0), x = 940 + aB * u * u / 2; put(b, { x, y: 600 }); fb.set(x + 56, 555, 70, 0, '1 N'); arrowAt(ab, x - 40, 480, 80, 0); }, D);
 }, { lead: false }],
 ['q1', 'Quick check', (m, D) => {
   const p = panel(0);
@@ -190,7 +204,7 @@ const BEATS = [
   clockRun(t => k.show('stand'), D);
   const g = G(p, { o: 0, y: 24 });
   T(g, 'Chapter 10 · Force and Newton’s laws', { x: 800, y: 130, size: 28, fill: COL.dim, anchor: 'middle' });
-  phLabel(g, 'The First Law', { x: 800, y: 250, size: 110, weight: 600 });
+  phLabel(g, 'The First Law', { x: 800, y: 250, size: TY.title, weight: 600 });
   tw(g, { o: 1, y: 0 }, .2, 1.1, out);
   txt(p, 'Part 2 · Inertia and momentum', 800, 320, m('q'), { size: 36, fill: COL.dim });
 }],
@@ -198,12 +212,13 @@ const BEATS = [
   const p = panel(0);
   const tk = m('kick'), ts = m('space'), R = 28, V0 = 360, A = 90, T0 = V0 / A;     // grass friction: 90 px/s², stops after 4 s
   const field = camera(p, D);
+  // push in on the kick (set-up, contact, follow-through), then pull back to watch the ball roll and stop
+  field.to({ x: 560, y: GY - 110, z: 1.7 }, tk - 1.5, .9).to({ x: 800, y: 450, z: 1 }, tk + .8, 1.1);
   ground(field.world); park(field.world, [120]); goal(field.world, 1440);
   const ball = phBall(field.world, R, { x: 560, y: GY - R }), kid = phActor(field.world, 'you', { x: 482, y: GY, anim: 'stand' });
-  const vA = path(field.world, '', { stroke: VEL, 'stroke-width': 8 }), kick = forceArrow(field.world), fr = forceArrow(field.world);
-  const stay = txt(p, 'at rest: it stays at rest', 800, 150, m('stay'), { size: 36 });
-  const roll = txt(p, 'friction from grass and air slows it and stops it', 800, 210, m('stop'), { size: 30, fill: FORCE });
-  // Then deep space: a second camera fades in over the field and follows the ball; no friction, so nothing changes.
+  const vA = path(field.world, '', { stroke: VEL, 'stroke-width': 8 }), kick = forceArrow(field.world, { size: 20 }), fr = forceArrow(field.world);   // 'kick' is read at 1.7× zoom
+  const stay = txt(p, 'at rest: it stays at rest', 800, 150, m('stay'), { size: TY.label });
+  const roll = txt(p, 'friction from grass and air slows it and stops it', 800, 210, m('stop'), { size: TY.label, fill: FORCE });
   const sky = camera(p, D, { x: 800, y: 450 });
   put(sky.el, { o: 0 }); show(sky.el, ts, .7);
   prog(q => { if (q === 1) field.el.style.display = 'none'; }, ts + .75, 0, lin);
@@ -212,13 +227,13 @@ const BEATS = [
   const sb = phBall(sky.world, R, { y: 450 }), sv = path(sky.world, '', { stroke: VEL, 'stroke-width': 8 });
   const sx = t => 300 + 220 * (t - ts);
   sky.cut({ x: t => sx(t) + 300 }, 0);
-  const sl = G(p, { o: 0 }); phLabel(sl, 'deep space: no friction', { x: 800, y: 120, size: 38 }); phLabel(sl, 'velocity stays the same', { x: 800, y: 170, size: 30, fill: VEL });
+  const sl = G(p, { o: 0 }); phLabel(sl, 'deep space: no friction', { x: 800, y: 120, size: TY.rule }); phLabel(sl, 'velocity stays the same', { x: 800, y: 170, size: TY.label, fill: VEL });
   show(sl, ts + .4); hide(roll, ts, .3); hide(stay, ts, .3);
   clockRun(t => {
     const u = Math.max(0, t - tk), tt = Math.min(u, T0), x = 560 + V0 * tt - A * tt * tt / 2, v = t > tk && u < T0 ? V0 - A * u : 0;   // at rest until the kick
     put(ball, { x }); put(ball._spin, { r: (x - 560) / R * 180 / Math.PI });
     arrowAt(vA, x + R + 6, GY - R, v * .35, 0);
-    kick.set(560 - R - 100, GY - R - 70, t > tk - .3 && t < tk + .5 ? 100 : 0, 0, 'kick', 0, -14);
+    kick.set(560 - R - 70, GY - R - 60, t > tk - .1 && t < tk + .15 ? 70 : 0, 0, 'kick', 0, -10);   // the kick force only during contact
     fr.set(x - R - 6, GY - 80, v > 0 && t > tk + .5 ? 70 : 0, 180, 'friction');
     kid.show(t < tk - .55 || t > tk + .7 ? 'stand' : 'kick', t < tk - .12 ? 0 : t < tk + .12 ? 1 : 2);   // wind-up, contact at the word, follow-through
     const z = sx(t); put(sb, { x: z }); put(sb._spin, { r: z / R * 180 / Math.PI }); arrowAt(sv, z + R + 6, 450, 110, 0);
@@ -227,67 +242,79 @@ const BEATS = [
 ['law1', 'Newton’s first law', (m, D) => {
   const p = panel(0);
   const law = G(p, { o: 0 });
-  phLabel(law, 'An object at rest stays at rest, and an object in motion', { x: 800, y: 130, size: 36 });
-  phLabel(law, 'stays in motion, unless a net force acts on it.', { x: 800, y: 180, size: 36 });
+  phLabel(law, 'An object at rest stays at rest, and an object in motion', { x: 800, y: 130, size: TY.rule - 4 });
+  phLabel(law, 'stays in motion, unless a net force acts on it.', { x: 800, y: 180, size: TY.rule - 4 });
   show(law, m('law'));
-  // left: a crate that stays put; right: a puck gliding on ice at a steady velocity
   phBlock(p, 80, 470, 640, 14, PH.walk, { top: 0, ol: 0 }); crate(p, { x: 400, y: 470 });
-  T(p, 'at rest → stays at rest', { x: 400, y: 540, size: 30, weight: 700, anchor: 'middle' });
-  phBlock(p, 880, 470, 640, 14, '#cfe8f3', { top: 0, ol: 0 });
+  T(p, 'at rest → stays at rest', { x: 400, y: 540, size: TY.label, weight: 700, anchor: 'middle' });
+  phBlock(p, 860, 470, 700, 14, '#cfe8f3', { top: 0, ol: 0 });
   const puck = mk('rect', { x: -30, y: -22, width: 60, height: 22, rx: 8, fill: '#22282a' }, G(p)).parentNode, pv = path(p, '', { stroke: VEL, 'stroke-width': 8 });
-  T(p, 'in motion → stays in motion', { x: 1200, y: 540, size: 30, weight: 700, anchor: 'middle' });
+  T(p, 'in motion → stays in motion (same speed, same direction)', { x: 1210, y: 540, size: TY.note, weight: 700, anchor: 'middle' });
   const ig = G(p, { o: 0 });
-  phLabel(ig, 'inertia', { x: 800, y: 660, size: 64, fill: COL.chalk });
-  T(ig, 'matter resists changes to its motion: the first law is the law of inertia', { x: 800, y: 710, size: 28, fill: COL.dim, anchor: 'middle' });
+  phLabel(ig, 'inertia', { x: 800, y: 680, size: 64, fill: COL.chalk });
+  T(ig, 'matter resists changes to its motion: the first law is the law of inertia', { x: 800, y: 730, size: TY.note, fill: COL.dim, anchor: 'middle' });
   show(ig, m('inert'));
-  const joke = G(p, { o: 0 });
-  phSprite(joke, 'you_down', { x: 1330, y: 870, s: 1.4 });
-  phLabel(joke, '“Time to get up!”', { x: 1020, y: 790, size: 26, fill: COL.dim }); phLabel(joke, '“But… inertia…”', { x: 1340, y: 790, size: 26 });
-  show(joke, m('inert', 3));
-  clockRun(t => { const x = 920 + ((140 * t) % 600); put(puck, { x, y: 470 }); arrowAt(pv, x + 36, 425, 90, 0); }, D);
+  // one slow, steady glide across the whole beat (no loop): constant velocity, nothing pushing it
+  clockRun(t => { const x = 900 + 34 * t; put(puck, { x, y: 470 }); arrowAt(pv, x + 36, 425, 90, 0); }, D);
 }],
 ['mass', 'More mass, more inertia', (m, D) => {
   const p = panel(0);
-  const tc = m('catch'), LA = 330, LB = 600;
-  txt(p, 'More mass → more inertia', 800, 110, .2, { size: 44 });
-  [LA, LB].forEach(y => phBlock(p, 0, y + 70, 1600, 8, PH.walk, { top: 0, ol: 0 }));
-  const ct = phActor(p, 'friend', { x: 1240, y: LA + 70, anim: 'catch' }).face(-1), cb = phActor(p, 'friend', { x: 1240, y: LB + 70, anim: 'catch' }).face(-1);
-  park(p, [1500]);
-  const tb = mk('circle', { r: 14, fill: '#d7e24a', ...phLine(2) }, G(p)).parentNode, bb = mk('circle', { r: 40, fill: '#e07a2e', ...phLine(2.5) }, G(p)).parentNode;
-  path(bb, 'M-40 0H40M0 -40V40', { stroke: '#7a3a12', 'stroke-width': 3 });
-  const vT = path(p, '', { stroke: VEL, 'stroke-width': 8 }), vB = path(p, '', { stroke: VEL, 'stroke-width': 8 }), sT = forceArrow(p), sB = forceArrow(p);
-  phLabel(p, 'tennis ball: little mass', { x: 300, y: LA - 40, size: 30 }); phLabel(p, 'basketball: more mass', { x: 300, y: LB - 70, size: 30 });
-  txt(p, 'easy to stop', 1240, LA - 110, m('easy'), { size: 30, fill: FORCE });
-  txt(p, 'harder to stop: it pushes you back', 1240, LB - 140, m('hard'), { size: 30, fill: FORCE });
-  // Same speed; the catch begins at x = 1180. The tennis ball stops in 0.2 s; the basketball needs 1 s and shoves the catcher.
-  const V = 300, xc = 1180, tTen = tc + (xc - 200) / V;
+  const tc = m('catch'), LA = 330, LB = 610, V = 300, xc = 1170, tCatch = tc + (xc - 200) / V;
+  txt(p, 'More mass → more inertia', 800, 100, .2, { size: TY.rule });
+  // Push in on both catches together, then pull back. Labels stay in screen space.
+  const cam = camera(p, D);
+  cam.to({ x: 1080, y: 470, z: 1.45 }, tCatch - 1.1, .8).to({ x: 800, y: 450, z: 1 }, tCatch + 1.9, 1);
+  const w = cam.world;
+  [LA, LB].forEach(y => phBlock(w, 0, y + 70, 1600, 10, PH.walk, { top: 0, ol: 0 }));
+  const ct = phActor(w, 'friend', { x: 1230, y: LA + 70, anim: 'catch' }).face(-1), cb = phActor(w, 'friend', { x: 1230, y: LB + 70, anim: 'catch' }).face(-1);
+  const tb = mk('circle', { r: 14, fill: '#d7e24a', ...phLine(2) }, G(w)).parentNode, bb = mk('circle', { r: 36, fill: '#e07a2e', ...phLine(2.5) }, G(w)).parentNode;
+  path(bb, 'M-36 0H36M0 -36V36', { stroke: '#7a3a12', 'stroke-width': 3 });
+  const vT = path(w, '', { stroke: VEL, 'stroke-width': 8 }), vB = path(w, '', { stroke: VEL, 'stroke-width': 8 }), sT = forceArrow(w), sB = forceArrow(w);
+  // fixed comparison column on the left
+  phLabel(p, 'tennis ball: little mass', { x: 80, y: LA - 10, size: TY.label, anchor: 'start' }); phLabel(p, 'basketball: more mass', { x: 80, y: LB - 10, size: TY.label, anchor: 'start' });
+  const e1 = phLabel(p, '→ easy to stop', { x: 80, y: LA + 30, size: TY.label, fill: FORCE, anchor: 'start', o: 0 }), e2 = phLabel(p, '→ harder to stop: it pushes you back', { x: 80, y: LB + 30, size: TY.label, fill: FORCE, anchor: 'start', o: 0 });
+  show(e1, m('easy')); show(e2, m('hard'));
   clockRun(t => {
-    const u = t - tc, xT = u < 0 ? 200 : Math.min(xc, 200 + V * u) + (t > tTen ? Math.min(12, 30 * (t - tTen)) : 0);
-    const stopT = Math.max(0, Math.min(1.2, t - tTen)), xB = u < 0 ? 200 : t < tTen ? 200 + V * u : xc + V * stopT - V / 2.4 * stopT * stopT;
-    put(tb, { x: xT, y: LA + 40 }); put(bb, { x: xB, y: LB + 30 });
-    const push = Math.max(0, xB - xc); put(cb, { x: 1240 + push }); if (push > 2 && t < tTen + 1.2) cb.stride('backstep', push); else cb.show('catch', t > tTen ? 1 : 0); ct.show('catch', 0);
-    arrowAt(vT, xT + 20, LA - 10, t < tTen && u > 0 ? 90 : 0, 0); arrowAt(vB, xB + 46, LB - 30, t < tTen + 1.2 && u > 0 ? 90 * (t < tTen ? 1 : 1 - stopT / 1.2) : 0, 0);
-    sT.set(xT + 70, LA + 20, t > tTen && t < tTen + .35 ? 60 : 0, 180, ''); sB.set(xB + 110, LB + 10, t > tTen && t < tTen + 1.2 ? 60 : 0, 180, '');
+    const u = t - tc, flying = t < tCatch;
+    // tennis: caught at the hand, a short absorb (arms pull in), then recover; the ball stays in the hand
+    const kT = t - tCatch, absorbT = kT > 0 && kT < .35;
+    ct.show('catch', absorbT ? 1 : 0); put(ct, { x: 1230 + (absorbT ? 6 * Math.sin(Math.PI * kT / .35) : 0) });
+    if (flying) put(tb, { x: u < 0 ? 200 : 200 + V * u, y: LA + 40 }); else { const [hx, hy] = ct.hand('F'); put(tb, { x: hx - 12, y: hy + 6 }); }
+    // basketball: caught, then it carries the catcher back (decelerating) before she recovers
+    const kB = t - tCatch, slide = kB <= 0 ? 0 : kB < 1.2 ? V * kB - V / 2.4 * kB * kB : V * 1.2 - V / 2.4 * 1.44;
+    put(cb, { x: 1230 + slide }); if (kB > 0 && kB < 1.2) cb.stride('backstep', slide); else cb.show('catch', kB > 0 && kB < 1.6 ? 1 : 0);
+    if (flying) put(bb, { x: u < 0 ? 200 : 200 + V * u, y: LB + 30 }); else { const [hx, hy] = cb.hand('F'); put(bb, { x: hx - 30, y: hy + 10 }); }
+    arrowAt(vT, st(tb).x + 20, LA - 10, flying && u > 0 ? 90 : 0, 0); arrowAt(vB, st(bb).x + 42, LB - 30, (flying && u > 0) || (kB > 0 && kB < 1.2) ? 90 * (flying ? 1 : 1 - kB / 1.2) : 0, 0);
+    sT.set(st(tb).x + 60, LA + 10, absorbT ? 60 : 0, 180, ''); sB.set(st(bb).x + 80, LB - 10, kB > 0 && kB < 1.2 ? 60 : 0, 180, '');
   }, D);
-}],
+}, { lead: false }],
 ['momentum', 'Momentum', (m, D) => {
   const p = panel(0);
-  show(runs(p, [['momentum', COL.chalk], [' = mass × ', COL.chalk], ['velocity', VEL]], { x: 800, y: 150, size: 52, weight: 700 }), m('f'));
-  // Overhead pool table: the cue ball hits a ball of the same mass, stops, and passes on all of its momentum.
-  phBlock(p, 200, 300, 1200, 400, '#6b4a30', { top: 0, ol: 0 }); phBlock(p, 240, 340, 1120, 320, '#2f7d4f', { top: 0, ol: 0 });
-  const cue = mk('circle', { r: 30, fill: '#f4f1e8', ...phLine(2) }, G(p)).parentNode, red = mk('circle', { r: 30, fill: '#d24b4b', ...phLine(2) }, G(p)).parentNode;
-  const vc = path(p, '', { stroke: VEL, 'stroke-width': 8 }), vr = path(p, '', { stroke: VEL, 'stroke-width': 8 });
-  const lc = phLabel(p, '', { size: 26 }), lr = phLabel(p, '', { size: 26 }), tot = phLabel(p, '', { x: 800, y: 760, size: 36, fill: COL.chalk });
-  const t0 = m('pool'), xHit = 760, V = 260, tHit = t0 + (xHit - 330) / V;
-  show(lc, t0); show(lr, t0); put(lc, { o: 0 }); put(lr, { o: 0 }); put(tot, { o: 0 }); show(tot, m('cons'));
+  show(runs(p, [['momentum', COL.chalk], [' = mass × ', COL.chalk], ['velocity', VEL]], { x: 800, y: 120, size: 52, weight: 700 }), m('f'));
+  // A long overhead table: the camera follows the moving ball, so nothing has to stop at a cushion.
+  const cam = camera(p, D, { x: 800, y: 430 }), w = cam.world;
+  const t0 = m('pool'), V = 280, xHit = 740, tHit = t0 + (xHit - 330) / V;
+  const ballX = t => t < tHit ? (t < t0 ? 330 : 330 + V * (t - t0)) : xHit;
+  const redX = t => t < tHit ? 800 : 800 + V * (t - tHit);
+  cam.cut({ x: t => Math.max(800, redX(t) - 200) }, 0);
+  phBlock(w, -200, 260, 5200, 340, '#6b4a30', { top: 0, ol: 0 }); phBlock(w, -160, 300, 5120, 260, '#2f7d4f', { top: 0, ol: 0 });
+  const cue = mk('circle', { r: 30, fill: '#f4f1e8', ...phLine(2) }, G(w)).parentNode, red = mk('circle', { r: 30, fill: '#d24b4b', ...phLine(2) }, G(w)).parentNode;
+  const vc = path(w, '', { stroke: VEL, 'stroke-width': 8 }), vr = path(w, '', { stroke: VEL, 'stroke-width': 8 });
+  const pc = phLabel(w, '', { size: TY.label }), pr = phLabel(w, '', { size: TY.label });
+  // Fixed columns (screen space): white ball, red ball, total; the full products live here, not on the balls.
+  const cols = [['white ball', 300], ['red ball', 800], ['total', 1300]].map(([h, x]) => {
+    const g = G(p, { o: 0 }); phLabel(g, h, { x, y: 660, size: TY.label, fill: COL.dim }); const v = phLabel(g, '', { x, y: 720, size: TY.value }); show(g, t0); return v;
+  });
+  const when = phLabel(p, '', { x: 800, y: 790, size: TY.label, fill: COL.dim, o: 0 }); show(when, t0);
+  const cond = G(p, { o: 0 }); phLabel(cond, 'two balls, no outside forces (we ignore friction): the total before = the total after', { x: 800, y: 845, size: TY.note }); show(cond, m('cons'));
   clockRun(t => {
-    const xc = t < t0 ? 330 : Math.min(xHit, 330 + V * (t - t0)), xr = t < tHit ? 820 : Math.min(1300, 820 + V * (t - tHit));
-    put(cue, { x: xc, y: 500 }); put(red, { x: xr, y: 500 });
-    const mc = t >= t0 && t < tHit, mr = t >= tHit && xr < 1300;
-    arrowAt(vc, xc + 36, 455, mc ? 90 : 0, 0); arrowAt(vr, xr + 36, 455, mr ? 90 : 0, 0);
-    put(lc, { x: xc, y: 590 }); phText(lc, mc ? '0.2 kg × 2 m/s = 0.4' : '0');
-    put(lr, { x: xr, y: 590 }); phText(lr, mr || xr >= 1300 ? '0.2 kg × 2 m/s = 0.4' : '0');
-    phText(tot, `total momentum ${t < tHit ? 'before' : 'after'}: 0.4 kg·m/s`);
+    const xc = ballX(t), xr = redX(t), before = t < tHit, moving = t >= t0;
+    put(cue, { x: xc, y: 430 }); put(red, { x: xr, y: 430 });
+    arrowAt(vc, xc + 36, 385, before && moving ? 90 : 0, 0); arrowAt(vr, xr + 36, 385, !before ? 90 : 0, 0);
+    put(pc, { x: xc, y: 520 }); phText(pc, before && moving ? 'p = 0.4' : '');      // only the moving ball carries a short value;
+    put(pr, { x: xr, y: 520 }); phText(pr, before ? '' : 'p = 0.4');                // the columns hold the full numbers
+    phText(cols[0], before && moving ? '0.2 kg × 2 m/s = 0.4' : '0'); phText(cols[1], before ? '0' : '0.2 kg × 2 m/s = 0.4'); phText(cols[2], moving ? '0.4 kg·m/s' : '0');
+    phText(when, !moving ? '' : before ? 'before the collision' : 'after the collision');
   }, D);
 }],
 ['q2', 'Quick check', (m, D) => {
@@ -313,7 +340,7 @@ const BEATS = [
   txt(p, 'Newton’s first law', 800, 140, .2, { size: 40, fill: COL.dim });
   [['Objects keep their motion unless a net force acts on them.', 'w1'],
    ['Inertia resists changes in motion; more mass, more inertia.', 'w2'],
-   ['Momentum = mass × velocity; a collision keeps the total the same.', 'w3']].forEach(([s, mark], i) => {
+   ['Momentum = mass × velocity; with no outside forces, the total stays the same.', 'w3']].forEach(([s, mark], i) => {
     const g = G(p, { x: -16, y: 290 + i * 130, o: 0 });
     mk('rect', { x: 144, y: -38, width: 52, height: 52, rx: 6, fill: PH.ref }, g);
     T(g, String(i + 1), { x: 170, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
@@ -326,11 +353,11 @@ const BEATS = [
 ['part3', 'Part 3 · The second law', (m, D) => {
   const p = panel(0);
   ground(p); park(p, [1250, 1500]);
-  const ps = pusher(p, 'you'), f = forceArrow(p), a = path(p, '', { stroke: ACC, 'stroke-width': 8 });
-  clockRun(t => { const d = 18 * t * t, hx = ps.at(300 + d, d); f.set(hx + 20, GY - 140, 110, 0, 'force'); arrowAt(a, hx + 20, GY - 180, 90, 0); }, D);
+  const ps = pusher(p, 'you'), f = forceArrow(p), a = forceArrow(p, { color: ACC, w: 8 });
+  clockRun(t => { const d = 18 * t * t, hx = ps.at(300 + d, d); f.set(hx + 20, GY - 130, 110, 0, 'force', 0, 2); a.set(hx + 20, GY - 210, 90, 0, 'acceleration', 0, 2); }, D);
   const g = G(p, { o: 0, y: 24 });
   T(g, 'Chapter 10 · Force and Newton’s laws', { x: 800, y: 130, size: 28, fill: COL.dim, anchor: 'middle' });
-  phLabel(g, 'The Second Law', { x: 800, y: 250, size: 110, weight: 600 });
+  phLabel(g, 'The Second Law', { x: 800, y: 250, size: TY.title, weight: 600 });
   tw(g, { o: 1, y: 0 }, .2, 1.1, out);
   txt(p, 'Part 3 · Force, mass, and acceleration', 800, 320, m('q'), { size: 36, fill: COL.dim });
 }],
@@ -341,54 +368,56 @@ const BEATS = [
   show(wfrac(p, 'net force', 'mass', 740, y, { size: 46, ct: FORCE }), m('law', .3));
   const re = runs(p, [['net force', FORCE], [' = mass × ', COL.chalk], ['acceleration', ACC]], { x: 1180, y: y + 14, size: 40, weight: 700 });
   show(re, m('rearr'));
-  // Same 2 kg crate, 4 N and 8 N: double the force, double the acceleration (2 and 4 m/s²). 50 px per meter.
-  const L = [[400, 4, 2], [640, 8, 4]], t0 = m('more', -.4);
-  const rows = L.map(([yy, F, a]) => {
+  // Same 2 kg crate, 4 N and 8 N: double the force, double the acceleration (2 and 4 m/s²). The scale is chosen so the
+  // faster crate reaches the far end exactly when the beat ends: both keep accelerating the whole time.
+  const t0 = m('more', -.4), U = 2 * 1100 / (4 * (D - t0) ** 2);
+  const rows = [[400, 4, 2], [640, 8, 4]].map(([yy, F, a]) => {
     phBlock(p, 100, yy, 1400, 10, PH.walk, { top: 0, ol: 0 });
-    const c = crate(p, { y: yy, w: 110, h: 90, label: '2 kg' }), f = forceArrow(p), aa = forceArrow(p, { color: ACC, w: 8 });
-    return { c, f, aa, F, a, yy };
+    return { c: crate(p, { y: yy, w: 110, h: 90, label: '2 kg' }), f: forceArrow(p), aa: forceArrow(p, { color: ACC, w: 8 }), F, a, yy };
   });
   clockRun(t => rows.forEach(({ c, f, aa, F, a, yy }) => {
-    const u = Math.min(Math.max(0, t - t0), Math.sqrt(1100 / 100)), x = 200 + 50 * a * u * u / 2;   // stop when the faster crate reaches the end
+    const u = Math.max(0, t - t0), x = 200 + U * a * u * u / 2;
     put(c, { x }); f.set(x + 56, yy - 45, F * 22, 0, `${F} N`); aa.set(x - 55, yy - 120, a * 30, 0, `${a} m/s²`, 0, 0);
   }), D);
-  txt(p, 'double the force → double the acceleration', 800, 820, m('more', .8), { size: 34 });
+  txt(p, 'double the force → double the acceleration', 800, 820, m('more', .8), { size: TY.label });
 }, { lead: false }],
 ['cart', 'Same force, different mass', (m, D) => {
   const p = panel(0);
-  const LA = 400, LB = 720, t0 = m('cart', -.6);
+  const LA = 400, LB = 720, t0 = m('cart', -.6), aPx = 2 * 1050 / (D - t0) ** 2;   // the cart reaches the far end at the beat's end
   [LA, LB].forEach(y => phBlock(p, 0, y, 1600, 10, PH.walk, { top: 0, ol: 0 }));
-  mk('rect', { x: 0, y: LB + 10, width: 1600, height: 170, fill: '#3a4541' }, p);   // the car lane is a parking lot
-  [300, 700, 1100, 1500].forEach(x => mk('rect', { x, y: LB + 30, width: 8, height: 110, fill: PH.line, opacity: .5 }, p));
+  mk('rect', { x: 0, y: LB + 10, width: 1600, height: 90, fill: '#3a4541' }, p);   // the car lane is a parking lot
+  [300, 700, 1100, 1500].forEach(x => mk('rect', { x, y: LB + 24, width: 8, height: 60, fill: PH.line, opacity: .5 }, p));
   const A = phActor(p, 'you', { y: LA, anim: 'push' }), cart = phSprite(p, 'cart', { y: LA });
   const B = phActor(p, 'friend', { y: LB, anim: 'push' }), car = phCar(p, { y: LB });
-  const f1 = forceArrow(p), f2 = forceArrow(p), a1 = forceArrow(p, { color: ACC, w: 8 }), a2 = forceArrow(p, { color: ACC, w: 8 });
-  phLabel(p, 'cart: 20 kg', { x: 120, y: LA - 190, size: 30, anchor: 'start' }); phLabel(p, 'car: 1,000 kg', { x: 120, y: LB - 190, size: 30, anchor: 'start' });
+  const f1 = forceArrow(p), f2 = forceArrow(p), a1 = forceArrow(p, { color: ACC, w: 8 });
+  // fixed columns: identity on the left, the result on the right; the car's tiny acceleration is a number, not a stub arrow
+  phLabel(p, 'cart: 20 kg', { x: 80, y: LA - 200, size: TY.label, anchor: 'start' }); phLabel(p, 'car: 1,000 kg', { x: 80, y: LB - 200, size: TY.label, anchor: 'start' });
   const why = G(p, { o: 0 });
-  phLabel(why, 'a = 200 N ÷ 20 kg = 10 m/s²', { x: 1150, y: LA - 190, size: 30, fill: ACC }); phLabel(why, 'a = 200 N ÷ 1,000 kg = 0.2 m/s²', { x: 1150, y: LB - 190, size: 30, fill: ACC });
+  phLabel(why, 'a = 200 N ÷ 20 kg = 10 m/s²', { x: 1520, y: LA - 200, size: TY.label, fill: ACC, anchor: 'end' }); phLabel(why, 'a = 200 N ÷ 1,000 kg = 0.2 m/s² (tiny)', { x: 1520, y: LB - 200, size: TY.label, fill: ACC, anchor: 'end' });
   show(why, m('why'));
   clockRun(t => {
-    const u = Math.max(0, t - t0), da = Math.min(1100, 150 * u * u), db = 3 * u * u;
+    const u = Math.max(0, t - t0), da = aPx * u * u / 2, db = da / 50;
     put(A, { x: 220 + da }); A.stride('push', da); const [ha] = A.hand('F'); put(cart, { x: ha + 52 });
-    f1.set(ha + 20, LA - 130, 120, 0, '200 N', 80, 20); a1.set(ha + 20, LA - 200, 100, 0, '');
+    f1.set(ha + 20, LA - 125, 120, 0, '200 N', 0, 0); a1.set(ha + 20, LA - 190, 100, 0, '');
     put(B, { x: 200 + db, y: LB + Math.sin(t * 9) * 1.2 }); B.stride('push', db * 4); const [hb] = B.hand('F'); put(car, { x: hb + 126 }); phRoll(car, db);
-    f2.set(hb + 30, LB - 130, 120, 0, '200 N', 80, 20); a2.set(hb + 30, LB - 200, 2, 0, '');
+    f2.set(hb + 30, LB - 125, 120, 0, '200 N', 0, 0);
   }, D);
 }],
 ['calc', 'Net force = mass × acceleration', (m, D) => {
   const p = panel(0);
   phBlock(p, 0, 640, 1600, 10, PH.walk, { top: 0, ol: 0 });
-  const car = phCar(p, { y: 640 }), f = forceArrow(p, { w: 12, size: 32 }), aa = forceArrow(p, { color: ACC, w: 8 });
-  const ml = phLabel(p, '2,000 kg', { size: 30 });
+  const car = phCar(p, { y: 640 }), f = forceArrow(p, { w: 12, size: TY.label }), aa = forceArrow(p, { color: ACC, w: 8 });
+  const ml = phLabel(p, '2,000 kg', { size: TY.label });
   const y = 180;
   show(runs(p, [['net force', FORCE], [' = mass × ', COL.chalk], ['acceleration', ACC]], { x: 800, y, size: 46, weight: 700 }), m('f'));
   show(runs(p, [['= 2,000 kg × 3 ', COL.chalk], ['m/s²', ACC]], { x: 800, y: y + 70, size: 46, weight: 700 }), m('f', 1.6));
   const ans = T(p, '= 6,000 N', { x: 800, y: y + 150, size: 64, weight: 700, fill: FORCE, anchor: 'middle', o: 0 });
   pop(put(ans, { s: .6 }), m('ans'));
+  const t0 = m('ex'), aPx = 2 * 900 / (D - t0) ** 2;          // accelerates through the whole worked example
   clockRun(t => {
-    const u = Math.max(0, t - m('ex')), x = 300 + Math.min(700, 18 * u * u);
+    const u = Math.max(0, t - t0), x = 300 + aPx * u * u / 2;
     put(car, { x }); phRoll(car, x); put(ml, { x, y: 500 });
-    aa.set(x - 80, 470, 90, 0, '3 m/s²'); f.set(x + 125, 590, t > m('ans') ? 190 : 0, 0, '6,000 N', 0, -30);
+    aa.set(x - 80, 470, 90, 0, '3 m/s²'); f.set(x + 125, 590, t > m('ans') ? 150 : 0, 0, '6,000 N', 0, -24);
   }, D);
 }, { lead: false }],
 ['wind', 'With and against the wind', (m, D) => {
@@ -455,72 +484,118 @@ const BEATS = [
   }, D);
   const g = G(p, { o: 0, y: 24 });
   T(g, 'Chapter 10 · Force and Newton’s laws', { x: 800, y: 130, size: 28, fill: COL.dim, anchor: 'middle' });
-  phLabel(g, 'The Third Law', { x: 800, y: 250, size: 110, weight: 600 });
+  phLabel(g, 'The Third Law', { x: 800, y: 250, size: TY.title, weight: 600 });
   tw(g, { o: 1, y: 0 }, .2, 1.1, out);
   txt(p, 'Part 4 · Forces come in pairs', 800, 320, m('q'), { size: 36, fill: COL.dim });
 }],
 ['law3', 'Action and reaction', (m, D) => {
   const p = panel(0);
-  const law = G(p, { o: 0 }); phLabel(law, 'For every action, there is an equal and opposite reaction.', { x: 800, y: 130, size: 40 }); show(law, m('law'));
-  rink(p);
-  const you = phActor(p, 'you', { x: 700, y: GY, anim: 'stand' }), ball = mk('circle', { r: 30, fill: '#22282a', ...phLine(2) }, G(p)).parentNode;
+  const law = G(p, { o: 0 }); phLabel(law, 'For every action, there is an equal and opposite reaction.', { x: 800, y: 120, size: TY.rule }); show(law, m('law'));
+  const tb = m('bowl'), tC = tb - .25;                     // contact: the push lasts from the wind-up to release (0.25 s)
+  const cam = camera(p, D), w = cam.world;
+  cam.to({ x: 760, y: GY - 120, z: 1.5 }, tb - 1.3, .8).to({ x: 800, y: 450, z: 1 }, tb + .6, 1);   // in for the throw, out for the result
+  rink(w);
+  const you = phActor(w, 'you', { x: 700, y: GY, anim: 'stand' }), ball = mk('circle', { r: 28, fill: '#22282a', ...phLine(2) }, G(w)).parentNode;
   [[-8, -10], [6, -14], [2, 4]].forEach(([x, y]) => mk('circle', { cx: x, cy: y, r: 4, fill: '#5a6266' }, ball));
-  const act = forceArrow(p, { w: 11 }), rea = forceArrow(p, { w: 11 });
-  const tb = m('bowl');
-  const eq = G(p, { o: 0 }); phLabel(eq, 'same size: 50 N and 50 N', { x: 800, y: 230, size: 34 }); show(eq, m('equal'));
-  const op = G(p, { o: 0 }); phLabel(op, 'opposite directions, on two different objects', { x: 800, y: 280, size: 34 }); show(op, m('opp'));
-  // wind-up (ball at the chest), release at "bowl", then recoil: the light ball flies, you slide back a little
+  const act = forceArrow(w, { w: 11, size: 22 }), rea = forceArrow(w, { w: 11, size: 22 }), vb = path(w, '', { stroke: VEL, 'stroke-width': 8 }), vy = path(w, '', { stroke: VEL, 'stroke-width': 8 });
+  // the release point is the hand of the release pose
+  you.show('throw', 1); put(you, { x: 700 }); const [rx, ry] = you.hand('F');
+  const VB = 520, VY = 28;                                  // the light ball flies fast; you (much heavier) slide slowly
+  // A freeze-frame of the moment of contact, for "same size" and "opposite directions": both forces, together.
+  const snap = camera(p, D, { box: [1010, 240, 520, 300], x: 760, y: GY - 110, z: .95 });
+  rink(snap.world); const sy2 = phActor(snap.world, 'you', { x: 700, y: GY, anim: 'throw' }).show('throw', 1);
+  mk('circle', { cx: rx + 24, cy: ry, r: 28, fill: '#22282a', ...phLine(2) }, snap.world);
+  forceArrow(snap.world, { w: 11, size: 30 }).set(rx + 56, ry, 120, 0, '50 N', 0, -8); forceArrow(snap.world, { w: 11, size: 30 }).set(650, GY - 110, 120, 180, '50 N', 0, -8);
+  put(snap.el, { o: 0 }); show(snap.el, m('equal', -.3));
+  const st1 = G(p, { o: 0 }); phLabel(st1, 'at the moment of the throw', { x: 1270, y: 225, size: TY.note, fill: COL.dim }); show(st1, m('equal', -.3));
+  const eq = G(p, { o: 0 }); phLabel(eq, 'same size: 50 N and 50 N', { x: 1270, y: 730, size: TY.label }); show(eq, m('equal'));
+  const op = G(p, { o: 0 }); phLabel(op, 'opposite directions, on two objects', { x: 1270, y: 775, size: TY.label }); show(op, m('opp'));
   clockRun(t => {
-    const u = Math.max(0, t - tb), xy = 700 - Math.min(160, 90 * u), fr = t < tb - .7 ? null : t < tb ? 0 : t < tb + .35 ? 1 : 2;
-    put(you, { x: xy }); if (fr === null) you.show('stand'); else you.show('throw', fr);
+    const u = Math.max(0, t - tb), contact = t >= tC && t < tb;
+    put(you, { x: 700 - VY * u });
+    if (t < tb - .9) you.show('stand'); else if (t < tC) you.show('throw', 0); else if (t < tb + .4) you.show('throw', 1); else you.show('throw', 2);
     let bx, by;
-    if (u <= 0) { you.show('throw', t < tb - .7 ? 0 : 0); [bx, by] = you.hand('F'); bx += 22; by -= 4; }
-    else { const [hx, hy] = [700 + 60, GY - 96]; bx = Math.min(1300, hx + 520 * u); by = Math.min(GY - 30, hy + 60 * u * u); }
+    if (t < tb) { const [hx, hy] = you.hand('F'); bx = hx + 24; by = hy; }            // the ball is in the hands until release
+    else { bx = rx + 24 + VB * u; by = ry; }                                            // then it flies straight on (ice: no friction)
     put(ball, { x: bx, y: by });
-    act.set(Math.min(1300, bx) + 36, by, t > tb ? 120 : 0, 0, 'on the ball: 50 N', -40, -10);
-    rea.set(xy - 50, GY - 150, t > tb ? 120 : 0, 180, 'on you: 50 N', 0, -10);
+    act.set(bx + 32, by, contact ? 110 : 0, 0, 'on the ball', 0, -8); rea.set(700 - VY * u - 40, GY - 150, contact ? 110 : 0, 180, 'on you', 0, -8);
+    arrowAt(vb, bx + 34, by - 46, u > 0 ? 100 : 0, 0); arrowAt(vy, 700 - VY * u - 30, GY - 200, u > 0 ? 40 : 0, 180, 12);   // velocities after release
   }, D);
 }, { lead: false }],
 ['pairs', 'Action-reaction pairs', (m, D) => {
   const p = panel(0);
   const tt = m('tramp'), tr = m('run');
-  txt(p, 'Action-reaction pairs', 800, 110, .2, { size: 44 });
+  txt(p, 'Action-reaction pairs', 800, 100, .2, { size: TY.rule });
+  // Left: one full bounce told slowly: drop, contact and compression (held so the pair can be read), launch, flight.
   const L = G(p, { o: 0 }); show(L, tt - .3);
-  path(L, 'M120 640V520M120 560H680M680 640V520', { stroke: '#5a6d63', 'stroke-width': 6, opacity: .7 });   // a backyard fence
+  path(L, 'M100 640V500M100 540H700M700 640V500', { stroke: '#5a6d63', 'stroke-width': 6, opacity: .7 });
   path(L, 'M180 640V720M620 640V720', { stroke: '#7d8a86', 'stroke-width': 10 });
   const bed = path(L, '', { stroke: '#2f3a44', 'stroke-width': 10 });
   const jumper = phActor(L, 'you', { x: 400, anim: 'jump' }), down = forceArrow(L), up = forceArrow(L);
-  phLabel(L, 'you push down; it pushes you up', { x: 400, y: 790, size: 28 });
-  const R = G(p, { o: 0 }); show(R, tr - .3);
-  phBlock(R, 860, 640, 640, 20, '#8a6f55', { top: 4, ol: 0 });
-  [900, 1020, 1140, 1260, 1380].forEach(x => mk('rect', { x, y: 664, width: 60, height: 6, fill: PH.line, opacity: .5 }, R));   // running-track lines
-  const runner = phActor(R, 'friend', { y: 640, anim: 'run' }), back = forceArrow(R), fwd = forceArrow(R);
-  phLabel(R, 'your foot pushes back; the ground pushes you forward', { x: 1180, y: 790, size: 28 });
+  phLabel(L, 'you push down; it pushes you up', { x: 400, y: 790, size: TY.label });
+  // phases (s after "tramp"): fall 0–.5, compress .5–.9, hold .9–1.9, launch 1.9–2.2, flight 2.2–3.4, then rest standing
+  const bounce = t => {
+    const k = t - tt + .5, g = 1100;               // px/s²
+    if (k < .5) return { y: 640 - 260 + g / 2 * Math.min(k, .5) ** 2 * (260 / (g / 8)), sag: 0, pose: 'jump' };
+    if (k < .9) return { y: 640 + 35 * ramp(k, .5, .9), sag: ramp(k, .5, .9), pose: 'land', push: true };
+    if (k < 1.9) return { y: 675, sag: 1, pose: 'crouch', push: true };
+    if (k < 2.2) return { y: 675 - 35 * ramp(k, 1.9, 2.2), sag: 1 - ramp(k, 1.9, 2.2), pose: 'land', push: true };
+    if (k < 3.4) { const q = (k - 2.2) / 1.2; return { y: 640 - 260 * 4 * q * (1 - q), sag: 0, pose: 'jump' }; }   // parabola
+    return { y: 640, sag: 0, pose: 'stand' };
+  };
+  // Right: a runner on a track, followed by a box camera: the ground slides back, the feet keep pace; no loop.
+  const box = [860, 300, 640, 420], rc = camera(p, D, { box, x: 1100, y: 560, z: 1 });
+  put(rc.el, { o: 0 }); show(rc.el, tr - .3);
+  const track = rc.layer(1, 600);
+  phBlock(track, -1200, 640, 6000, 20, '#8a6f55', { top: 4, ol: 0 });
+  for (let x = -1200; x < 4800; x += 120) mk('rect', { x, y: 664, width: 60, height: 6, fill: PH.line, opacity: .5 }, track);
+  const runner = phActor(rc.world, 'friend', { y: 640, anim: 'run' }), back = forceArrow(rc.world), fwd = forceArrow(rc.world);
+  const rx = t => 1000 + 240 * Math.max(0, t - tr);
+  rc.cut({ x: t => rx(t) + 100 }, 0);
+  phLabel(p, 'your foot pushes back; the ground pushes you forward', { x: 1180, y: 790, size: TY.label, o: 0 }); show(p.lastChild, tr);
   clockRun(t => {
-    const ph = ((t - tt) % 1.6 + 1.6) % 1.6, air = Math.max(0, Math.sin(Math.PI * ph / 1.2)), sag = ph > 1.2 ? Math.sin(Math.PI * (ph - 1.2) / .4) : 0, onBed = ph > 1.2;
-    bed.setAttribute('d', `M180 640Q400 ${640 + 70 * sag} 620 640`);
-    put(jumper, { y: 640 + 35 * sag - 260 * air }); jumper.show(onBed ? (sag > .5 ? 'crouch' : 'land') : air > .15 ? 'jump' : 'land');
-    down.set(470, 600 + 35 * sag, onBed && t > tt ? 90 : 0, 90, 'on the trampoline', 110, 40); up.set(330, 690, onBed && t > tt ? 90 : 0, -90, 'on you', -70, 40);
-    const u = Math.max(0, t - tr), d = 260 * u, x = 920 + d % 520;
-    put(runner, { x }); runner.stride('run', d); const push = runner._f % 2 === 0;   // after stride: a function of t only
-    back.set(x - 10, 662, u > 0 && push ? 80 : 0, 180, 'on the ground', -30, 50); fwd.set(x - 20, 500, u > 0 && push ? 80 : 0, 0, 'on you', 0, 0);
+    const b = bounce(t);
+    bed.setAttribute('d', `M180 640Q400 ${640 + 70 * b.sag} 620 640`); put(jumper, { y: t < tt - .5 ? 640 : b.y }); jumper.show(t < tt - .5 ? 'stand' : b.pose);
+    const on = !!b.push && t > tt - .5;
+    down.set(470, 600 + 35 * b.sag, on ? 90 : 0, 90, 'on the trampoline', 110, 40); up.set(330, 690, on ? 90 : 0, -90, 'on you', -70, 40);
+    const x = rx(t), d = x - 1000;
+    put(runner, { x }); if (t > tr) runner.stride('run', d); else runner.show('stand');
+    const strike = t > tr && runner._f % 2 === 0;
+    back.set(x - 10, 662, strike ? 80 : 0, 180, 'on the ground', -30, 50); fwd.set(x - 20, 500, strike ? 80 : 0, 0, 'on you', 0, 0);
   }, D);
 }],
 ['earth', 'Why Earth doesn’t move', (m, D) => {
   const p = panel(0);
   phEarthPolar(p, { x: 520, y: 1180, R: 620 });
   const you = phActor(p, 'you', { x: 520, y: 560, anim: 'stand' }), dn = forceArrow(p), up = forceArrow(p);
-  phLabel(p, '50 kg', { x: 620, y: 470, size: 28 });
   const ta = m('mass'), tt = m('tiny');
-  const a1 = G(p, { o: 0 }); runs(a1, [['on you: ', COL.chalk], ['a = 500 N ÷ 50 kg = ', COL.chalk], ['10 m/s²', ACC]], { x: 1180, y: 300, size: 34, weight: 700, o: 1 }); show(a1, ta + .6);
-  const a2 = G(p, { o: 0 }); runs(a2, [['on Earth: ', COL.chalk], ['a = 500 N ÷ 6,000,000,000,000,000,000,000,000 kg', COL.chalk]], { x: 1050, y: 380, size: 26, weight: 700, o: 1 });
-  runs(a2, [['≈ ', COL.chalk], ['0.0000000000000000000001 m/s²', ACC]], { x: 1050, y: 425, size: 30, weight: 700, o: 1 }); show(a2, ta + 2);
-  txt(p, 'far too small to notice, but it is there', 1050, 500, tt + .4, { size: 30, fill: COL.dim });
-  // crouch, push off (the force pair), fly, land; repeat
+  // The pair is equal; what differs is the mass. No acceleration arithmetic for the jumper: on the ground, gravity
+  // acts too, so the push alone is not the net force.
+  const g1 = G(p, { o: 0 });
+  runs(g1, [['the same 500 N ', FORCE], ['acts on both', COL.chalk]], { x: 1170, y: 260, size: TY.value, weight: 700, o: 1 }); show(g1, ta);
+  const g2 = G(p, { o: 0 });
+  phLabel(g2, 'you: about 50 kg', { x: 1170, y: 340, size: TY.label }); phLabel(g2, 'Earth: about 6 × 10²⁴ kg', { x: 1170, y: 390, size: TY.label });
+  T(g2, '(a 6 followed by 24 zeros)', { x: 1170, y: 428, size: TY.note, fill: COL.dim, anchor: 'middle' }); show(g2, ta + 1.2);
+  const g3 = G(p, { o: 0 });
+  runs(g3, [['huge mass → ', COL.chalk], ['tiny acceleration', ACC]], { x: 1170, y: 510, size: TY.value, weight: 700, o: 1 });
+  T(g3, 'far too small to notice, but it is there', { x: 1170, y: 556, size: TY.label, fill: COL.dim, anchor: 'middle' }); show(g3, tt);
+  // three separate jumps: crouch, push-off (the force pair), flight on a parabola, landing and recovery
+  const starts = [.5, ta + .8, tt + 1.2];
+  const jump = t => {
+    for (const s of starts) {
+      const k = t - s;
+      if (k < 0 || k > 2.2) continue;
+      if (k < .35) return { y: 560, pose: 'crouch' };
+      if (k < .5) return { y: 560, pose: 'land', push: true };
+      if (k < 1.6) { const q = (k - .5) / 1.1; return { y: 560 - 200 * 4 * q * (1 - q), pose: 'jump' }; }
+      if (k < 1.9) return { y: 560, pose: 'land' };
+      return { y: 560, pose: 'stand' };
+    }
+    return { y: 560, pose: 'stand' };
+  };
   clockRun(t => {
-    const ph = ((t - .5) % 1.8 + 1.8) % 1.8, h = ph > .5 && ph < 1.6 ? Math.sin(Math.PI * (ph - .5) / 1.1) : 0, push = ph > .3 && ph < .55;
-    put(you, { y: 560 - 180 * h }); you.show(ph < .3 ? 'crouch' : push ? 'land' : h > .1 ? 'jump' : 'land');
-    dn.set(560, 530, push ? 100 : 0, 90, 'you push Earth: 500 N', 150, 20); up.set(480, 660, push ? 100 : 0, -90, 'Earth pushes you: 500 N', -170, 40);
+    const j = jump(t); put(you, { y: j.y }); you.show(j.pose);
+    dn.set(560, 530, j.push ? 100 : 0, 90, 'you push Earth: 500 N', 150, 20); up.set(480, 660, j.push ? 100 : 0, -90, 'Earth pushes you: 500 N', -170, 40);
   }, D);
 }, { lead: false }],
 ['q4', 'Quick check', (m, D) => {
