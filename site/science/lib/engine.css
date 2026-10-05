@@ -38,11 +38,13 @@ button[hidden] { display: none; }
 
 /* Question cards inside the picture. */
 .card { position: absolute; padding: 20px 26px; border-radius: 20px; background: rgba(34, 50, 45, .97); border: 1.5px solid var(--edge); border-left: 7px solid var(--quiz); box-shadow: 0 14px 44px rgba(0, 0, 0, .35); }
-.card.band { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-areas: "pic head body acts" "pic fb body acts"; column-gap: 28px; align-items: center; align-content: center; min-height: 150px; }
+/* Band card: prompt and buttons on top, answers below at full width, feedback last. A prompt beside the answers
+   lost the width race to long choices or answer rows (it was squeezed to a word per line, worst in Firefox). */
+.card.band { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "pic head acts" "pic body body" "pic fb fb"; column-gap: 28px; row-gap: 12px; align-items: center; align-content: center; min-height: 150px; }
 .band .mascot { grid-area: pic; }
-.band .head { grid-area: head; align-self: end; }
-.band .fb { grid-area: fb; align-self: start; }
-.band .body { grid-area: body; }
+.band .head { grid-area: head; }
+.band .fb { grid-area: fb; margin-top: 0; }
+.band .body { grid-area: body; min-width: 0; }
 .band .acts { grid-area: acts; }
 .side .mascot { float: right; margin: -2px -4px 6px 10px; }
 .kicker { margin: 0 0 4px; font-size: 20px; font-weight: 600; color: var(--quiz); }
