@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chapter 10: Force and Newton's Laws of Motion — Science</title>
+<link rel="stylesheet" href="../lib/engine.css">
+<link rel="expect" href="#bar" blocking="render">
+</head>
+<body>
+<script src="../lib/engine.js"></script>
+<script src="../lib/figures.js"></script>
+<script src="../lib/physics.js"></script>
+<script src="audio/en/timings.js"></script>
+<script>
+'use strict';
+// Chapter 10, one page in book order: part 1 (force, net force, balanced forces, newtons), part 2 (first law: inertia,
+// momentum), part 3 (second law), part 4 (third law), then the chapter practice.
+const CHAPTER = { number: 10, title: 'Force and Newton’s Laws of Motion', minutes: 13, language: 'en' };
+const Q_CARD = { x: 96, y: 586, w: 1408, cls: 'band' };   // a band card under the scenes; it moves up by itself when taller
+const GY = 560;                                           // ground line in side-view scenes
+const ground = p => { phBlock(p, 0, GY, 1600, 340, PH.grass, { top: 8, ol: 0 }); };
+const N = 40;                                             // force arrows: 40 px per newton (scaled per scene where noted)
+
+/* ---------- beats ---------- */
+const BEATS = [
+/* ---------- part 1: force and net force ---------- */
+['intro', 'Force and Newton’s laws', (m, D) => {
+  const p = panel(0);
+  ground(p);
+  const cart = phSprite(p, 'cart', { y: GY }), you = phSprite(p, 'you_point', { y: GY }), f = forceArrow(p);
+  clockRun(t => { const x = 260 + 20 * t * t; put(cart, { x: x + 110 }); put(you, { x }); f.set(x + 60, GY - 110, 120, 0, 'push'); }, D);
+  const g = G(p, { o: 0, y: 24 });
+  T(g, 'Unit 3 · Motion, Forces, and Work · Chapter 10', { x: 800, y: 130, size: 28, fill: COL.dim, anchor: 'middle' });
+  phLabel(g, 'Force and Newton’s Laws', { x: 800, y: 240, size: 92, weight: 600 });
+  tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+  txt(p, 'What makes things start, stop, speed up, or turn?', 800, 320, m('sub'), { size: 36, fill: COL.dim });
+}],
+['force', 'A push or a pull', (m, D) => {
+  const p = panel(0);
+  ground(p);
+  txt(p, 'A force is a push or a pull', 800, 110, .2, { size: 44 });
+  const t1 = m('push'), t2 = m('pull'), ts = m('shape');
+  const push = G(p), pull = G(p);
+  const c1 = phSprite(push, 'cart', { y: GY }), you = phSprite(push, 'you_point', { y: GY }), f1 = forceArrow(push);
+  const c2 = phSprite(pull, 'cart', { y: GY }), fr = phPerson(pull, { role: 'friend', y: GY }), rope = path(pull, '', { stroke: '#c9b38d', 'stroke-width': 5 }), f2 = forceArrow(pull);
+  T(push, 'push', { x: 330, y: 200, size: 32, weight: 700, fill: FORCE, anchor: 'middle' });
+  T(pull, 'pull', { x: 1100, y: 200, size: 32, weight: 700, fill: FORCE, anchor: 'middle' });
+  put(pull, { o: 0 }); show(pull, t2 - .2);
+  const sizes = G(p, { o: 0 }), small = forceArrow(sizes), big = forceArrow(sizes);
+  small.set(360, 700, 2 * N, 0, '2 N'); big.set(860, 700, 6 * N, 0, '6 N');
+  T(sizes, 'longer arrow = bigger force; it points the way of the push or pull', { x: 800, y: 790, size: 30, fill: COL.chalk, anchor: 'middle' });
+  show(sizes, m('dir'));
+  const can = G(p, { o: 0 }), cs = phSprite(can, 'can', { x: 800, y: 760, s: 2 }), sq1 = forceArrow(can), sq2 = forceArrow(can);
+  show(can, ts); hide(sizes, ts - .3, .3); tw(push, { o: .35 }, ts, .4); tw(pull, { o: .35 }, ts, .4);
+  txt(p, 'a force can change a shape', 800, 860, ts + .3, { size: 30, fill: COL.chalk });
+  clockRun(t => {
+    const u = Math.max(0, t - t1), x = 150 + Math.min(250, 30 * u * u);
+    put(you, { x }); put(c1, { x: x + 110 }); f1.set(x + 60, GY - 110, t > t1 - .2 ? 110 : 0, 0, '');
+    const v = Math.max(0, t - t2), x2 = 1150 + Math.min(260, 28 * v * v);
+    put(fr, { x: x2 }); if (v > 0 && x2 < 1410) walkTo(fr, x2); else phPose(fr); put(c2, { x: x2 - 240 });
+    rope.setAttribute('d', `M${x2 - 180} ${GY - 50}L${x2 - 12} ${GY - 62}`); f2.set(x2 - 180, GY - 110, t > t2 - .2 ? 110 : 0, 0, '');
+    const k = ramp(t, ts + .6, ts + 1.4), w = 60 + 70 * (1 - k);
+    phFrame(cs, k >= 1 ? 'can_crushed' : 'can');
+    sq1.set(800 - w - 90, 720, 90, 0, ''); sq2.set(800 + w + 90, 720, 90, 180, '');
+  }, D);
+}],
+['net', 'Net force', (m, D) => {
+  const p = panel(0);
+  ground(p);
+  txt(p, 'Net force: the total of all the forces on an object', 800, 110, .2, { size: 40 });
+  const c = crate(p, { x: 800, y: GY }), A = forceArrow(p), B = forceArrow(p), NF = forceArrow(p, { color: NETF, w: 14, size: 32 });
+  const ta = m('add'), ts = m('sub'), eq1 = runs(p, [['3 N + 2 N = ', COL.chalk], ['5 N →', NETF]], { x: 800, y: 790, size: 44, weight: 700 }),
+    eq2 = runs(p, [['5 N − 3 N = ', COL.chalk], ['2 N →', NETF]], { x: 800, y: 790, size: 44, weight: 700 });
+  show(eq1, ta + 3); hide(eq1, ts - .2, .2); show(eq2, ts + 3.5);
+  txt(p, 'same direction: add · opposite directions: subtract', 800, 860, m('netw'), { size: 30, fill: COL.dim, weight: 500 });
+  clockRun(t => {
+    const phase = t < ts - .2 ? 1 : 2, u = phase === 1 ? t - ta : t - ts;
+    const slide = phase === 1 ? Math.min(60, Math.max(0, u - 3) * 20) : 60 + Math.min(30, Math.max(0, u - 3.5) * 10), x = 800 + slide;
+    put(c, { x });
+    if (t < ta) { A.set(0, 0, 0); B.set(0, 0, 0); NF.set(0, 0, 0); return; }
+    if (phase === 1) { A.set(x + 80, GY - 95, 3 * N, 0, '3 N'); B.set(x + 80, GY - 40, 2 * N, 0, '2 N', 0, 50); NF.set(x - 100, GY + 80, u > 2.5 ? 5 * N : 0, 0, 'net force', 0, 70); }
+    else { A.set(x + 80, GY - 70, 5 * N, 0, '5 N'); B.set(x - 80, GY - 70, 3 * N, 180, '3 N'); NF.set(x - 40, GY + 80, u > 3 ? 2 * N : 0, 0, 'net force', 0, 70); }
+  }, D);
+}, { lead: false }],
+['balance', 'Balanced and unbalanced', (m, D) => {
+  const p = panel(0);
+  ground(p);
+  const tb = m('bal'), tu = m('unbal');
+  const L = phSprite(p, 'friend_point', { y: GY }), R = phSprite(p, 'you_point', { y: GY }), rope = path(p, '', { stroke: '#c9b38d', 'stroke-width': 7 });
+  phFace(R, -1);
+  const mark = mk('rect', { x: -6, y: -40, width: 12, height: 40, fill: COL.bad }, G(p)), mg = mark.parentNode;
+  path(p, `M800 ${GY + 10}V${GY + 60}`, { stroke: COL.dim, 'stroke-width': 4, 'stroke-dasharray': '6 6' });
+  const FL = forceArrow(p), FR = forceArrow(p), NF = forceArrow(p, { color: NETF, w: 14, size: 32 });
+  const tag = phLabel(p, '', { x: 800, y: 180, size: 48 });
+  clockRun(t => {
+    const pull = t < tu ? 10 : 10 + 5 * ramp(t, tu, tu + .8), u = Math.max(0, t - tu - .8), dx = Math.min(140, 20 * u * u);
+    put(L, { x: 380 + dx }); put(R, { x: 1160 + dx }); rope.setAttribute('d', `M${430 + dx} ${GY - 70}H${1110 + dx}`); put(mg, { x: 800 + dx, y: GY - 70 + 20 });
+    const on = t > tb - .2;
+    FL.set(430 + dx, GY - 120, on ? 10 * N * .6 : 0, 180, '10 N'); FR.set(1110 + dx, GY - 120, on ? pull * N * .6 : 0, 0, `${Math.round(pull)} N`);
+    NF.set(700 + dx, GY + 110, t > tu + .9 ? 5 * N * .6 : 0, 0, 'net force: 5 N', 0, 60);
+    phText(tag, t < tb ? '' : t < tu ? 'balanced: net force = 0 N' : 'unbalanced: net force = 5 N →');
+  }, D);
+}],
+['newton', 'The newton', (m, D) => {
+  const p = panel(0);
+  txt(p, 'Force is measured in newtons (N)', 800, 110, .2, { size: 44 });
+  phSprite(p, 'apple', { x: 520, y: 460, s: 3 });
+  const ag = G(p, { o: 0 }); forceArrow(ag).set(520, 600, 125, -90, 'hand: 1 N', -100, 20); forceArrow(ag).set(520, 175, 125, 90, 'gravity: 1 N', 120, 20);
+  show(ag, m('apple'));
+  txt(p, 'holding up an apple ≈ 1 N', 520, 680, m('apple', .4), { size: 32 });
+  const def = G(p, { o: 0 });
+  runs(def, [['1 N', FORCE], [' = 1 kg × 1 ', COL.chalk], ['m/s²', ACC]], { x: 1150, y: 330, size: 56, weight: 700, o: 1 });
+  T(def, 'the force that gives 1 kg an acceleration of 1 m/s²', { x: 1150, y: 390, size: 26, fill: COL.dim, anchor: 'middle' });
+  show(def, m('def'));
+  const blk = G(p, { o: 0 }), b = crate(blk, { w: 110, h: 90, label: '1 kg' }), fb = forceArrow(blk), ab = path(blk, '', { stroke: ACC, 'stroke-width': 8 });
+  phBlock(blk, 880, 600, 560, 10, PH.walk, { top: 0, ol: 0 });
+  show(blk, m('def', .5));
+  clockRun(t => { const u = Math.max(0, t - m('def', .8)), x = 940 + Math.min(380, 40 * u * u); put(b, { x, y: 600 }); fb.set(x + 56, 555, 70, 0, '1 N'); arrowAt(ab, x - 40, 480, 80, 0); }, D);
+}, { lead: false }],
+['q1', 'Quick check', (m, D) => {
+  const p = panel(0);
+  ground(p);
+  const L = phSprite(p, 'friend_point', { x: 420, y: GY }), R = phSprite(p, 'you_point', { x: 1180, y: GY });
+  phFace(R, -1);
+  path(p, `M470 ${GY - 70}H1130`, { stroke: '#c9b38d', 'stroke-width': 7 });
+  forceArrow(p).set(470, GY - 120, 10 * N * .6, 180, 'brother: 10 N'); forceArrow(p).set(1130, GY - 120, 15 * N * .6, 0, 'you: 15 N');
+}, { ask: done => quiz(Q_CARD, [
+  { id: 'c-tug', prompt: ['Tug-of-war: you pull with 15 newtons, your brother pulls the other way with 10 newtons. What is the ', h('b', '', 'net force'), '?'],
+    build: blanks([{ parts: ['net force = 15 − 10 = ', { box: '5' }, ' newtons'], why: 'Opposite directions subtract: 15 − 10 = 5 newtons, toward you.', hint: 'The forces point in opposite directions, so subtract.' }]) },
+  { id: 'c-tugdir', prompt: ['Which way does the rope start to move?'],
+    build: choice([['toward you'], ['toward your brother'], ['it does not move']], 0,
+      'The net force (5 newtons) points toward you, the stronger pull.',
+      [null, 'Your brother pulls with less force; the net force points toward you.', 'The forces are unbalanced (15 vs 10), so the rope moves.']) },
+  { id: 'c-bal', prompt: ['Two teams each pull with 20 newtons in opposite directions. These forces are…'],
+    build: choice([['balanced: the net force is 0'], ['unbalanced: the net force is 40 newtons']], 0,
+      'Equal and opposite forces cancel: the net force is 0, so nothing changes.',
+      [null, 'They point in opposite directions, so subtract: 20 − 20 = 0.']) },
+], done) }],
+['wrap1', 'Summary · Force', (m, D) => {
+  const p = panel(0);
+  txt(p, 'Force and net force', 800, 140, .2, { size: 40, fill: COL.dim });
+  [['A force is a push or a pull, with a size and a direction.', 'w1'],
+   ['Same direction: add. Opposite directions: subtract. The total is the net force.', 'w2'],
+   ['Balanced forces cancel out; unbalanced forces change motion.', 'w3']].forEach(([s, mark], i) => {
+    const g = G(p, { x: -16, y: 290 + i * 130, o: 0 });
+    mk('rect', { x: 144, y: -38, width: 52, height: 52, rx: 6, fill: PH.ref }, g);
+    T(g, String(i + 1), { x: 170, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
+    T(g, s, { x: 230, size: 36, weight: 600 });
+    tw(g, { o: 1, x: 0 }, m(mark), .6);
+  });
+  txt(p, 'Next: Newton’s first law.', 800, 760, m('end'), { size: 32, fill: COL.dim, weight: 500 });
+}],
+/*BEATS*/
+].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
+
+boot();
+</script>
+</body>
+</html>
