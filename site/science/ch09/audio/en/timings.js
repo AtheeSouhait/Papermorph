@@ -275,5 +275,217 @@ window.TIMINGS = {
     "Next, we'll measure how fast things move."
    ]
   ]
+ },
+ "part2": {
+  "dur": 9.696,
+  "marks": {
+   "both": 1.953,
+   "q": 4.57
+  },
+  "cues": [
+   [
+    0.117,
+    "Part two."
+   ],
+   [
+    1.094,
+    "Speed."
+   ],
+   [
+    1.953,
+    "A runner and a car are both moving."
+   ],
+   [
+    4.57,
+    "But how fast?"
+   ],
+   [
+    5.938,
+    "To compare them, we need a number."
+   ],
+   [
+    8.359,
+    "That number is speed."
+   ]
+  ]
+ },
+ "speed": {
+  "dur": 18.456,
+  "marks": {
+   "go": 4.688,
+   "stop": 7.148,
+   "f": 10.677,
+   "calc": 13.971,
+   "ans": 16.471
+  },
+  "cues": [
+   [
+    0.104,
+    "Speed is the distance something travels in a certain amount of time."
+   ],
+   [
+    4.688,
+    "This runner starts at the zero mark."
+   ],
+   [
+    7.148,
+    "After eight seconds, she has gone twenty-four meters."
+   ],
+   [
+    10.677,
+    "To find her speed, divide the distance by the time: twenty-four meters divided by eight seconds is three meters per second."
+   ]
+  ]
+ },
+ "units": {
+  "dur": 21.168,
+  "marks": {
+   "s": 3.177,
+   "ms": 6.133,
+   "each": 9.44,
+   "mph": 15.651
+  },
+  "cues": [
+   [
+    0.091,
+    "In science, distance is measured in meters, and time is measured in seconds."
+   ],
+   [
+    6.133,
+    "So speed is measured in meters per second."
+   ],
+   [
+    9.44,
+    "Three meters per second means that every second, the runner covers three more meters."
+   ],
+   [
+    15.651,
+    "The miles per hour from part one is a speed unit too."
+   ],
+   [
+    18.88,
+    "It just uses miles and hours."
+   ]
+  ]
+ },
+ "average": {
+  "dur": 23.904,
+  "marks": {
+   "go": 3.099,
+   "stop": 4.479,
+   "again": 5.755,
+   "total": 6.979,
+   "avg": 10.82,
+   "ten": 15.43,
+   "ghost": 17.018
+  },
+  "cues": [
+   [
+    0.091,
+    "Most things don't keep the same speed the whole time."
+   ],
+   [
+    3.099,
+    "This car speeds along, stops at a red light, then drives on."
+   ],
+   [
+    6.979,
+    "In all, it covers three hundred meters in thirty seconds."
+   ],
+   [
+    10.82,
+    "Its average speed is the total distance divided by the total time: ten meters per second."
+   ],
+   [
+    17.018,
+    "A car driving steadily at ten meters per second would arrive at exactly the same moment."
+   ]
+  ]
+ },
+ "instant": {
+  "dur": 21.168,
+  "marks": {
+   "go": 3.398,
+   "avg": 5.534,
+   "but": 9.076,
+   "fast": 13.919,
+   "inst": 17.214
+  },
+  "cues": [
+   [
+    0.117,
+    "Here is a sprinter in the one hundred meter dash."
+   ],
+   [
+    3.398,
+    "She finishes in ten seconds, so her average speed is ten meters per second."
+   ],
+   [
+    9.076,
+    "But she doesn't run ten meters per second the whole way."
+   ],
+   [
+    12.435,
+    "She starts slowly, and near the finish line she is going much faster."
+   ],
+   [
+    17.214,
+    "The speed at one given moment is called instantaneous speed."
+   ]
+  ]
+ },
+ "q2": {
+  "dur": 8.544,
+  "marks": {},
+  "cues": [
+   [
+    0.091,
+    "Quick check."
+   ],
+   [
+    1.12,
+    "A dolphin swims fifty-six meters in eight seconds."
+   ],
+   [
+    4.935,
+    "A walrus swims thirty meters in six seconds."
+   ]
+  ]
+ },
+ "wrap2": {
+  "dur": 17.712,
+  "marks": {
+   "w1": 0.977,
+   "w2": 3.359,
+   "w3": 6.576,
+   "w4": 10.716,
+   "end": 14.18
+  },
+  "cues": [
+   [
+    0.104,
+    "To sum up."
+   ],
+   [
+    0.977,
+    "Speed is distance divided by time."
+   ],
+   [
+    3.359,
+    "In science, it is measured in meters per second."
+   ],
+   [
+    6.576,
+    "Average speed is the total distance divided by the total time."
+   ],
+   [
+    10.716,
+    "Instantaneous speed is the speed at one moment."
+   ],
+   [
+    14.18,
+    "Next, we'll give speed a direction: velocity."
+   ]
+  ]
  }
 };

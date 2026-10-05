@@ -45,7 +45,8 @@ function phPin(p, o = {}) {
 /* ---------- sprites ---------- */
 const PX = 8;                                    // world px per sprite pixel
 const PH_SPR = { car: [32, 13], truck: [44, 24], lamp: [7, 27], tree: [16, 20], house: [18, 14], maya_seated: [7, 7],
-  you: [9, 15], you_walk1: [7, 15], you_walk2: [11, 15], friend: [9, 15], friend_walk1: [7, 15], friend_walk2: [11, 15] };
+  you: [9, 15], you_walk1: [7, 15], you_walk2: [11, 15], friend: [9, 15], friend_walk1: [7, 15], friend_walk2: [11, 15],
+  runner: [7, 15], runner_walk1: [6, 15], runner_walk2: [11, 15], dolphin: [25, 8], walrus: [20, 11], light_red: [6, 21], light_green: [6, 21] };
 function phSprite(p, name, { x = 0, y = 0, s = 1, o = 1 } = {}) {
   const g = G(p, { x, y, s, o });
   g._img = mk('image', { style: 'image-rendering: pixelated' }, g);
@@ -59,7 +60,7 @@ function phFrame(g, name) {
   for (const k in a) g._img.setAttribute(k, a[k]);
   g._name = name;
 }
-// People (120 px tall): role 'you' (lilac) or 'friend' (coral). Poses: stand, walk (two frames per stride; phase in radians).
+// People (120 px tall): role 'you' (lilac), 'friend' (coral) or 'runner'. Poses: stand, walk (two frames per stride; phase in radians).
 const PH_PERSON_H = 120;
 const phPerson = (p, { role = 'you', ...o } = {}) => Object.assign(phSprite(p, role, o), { _role: role });
 const phPose = (person, pose = 'stand', phase = 0) =>
