@@ -5,19 +5,6 @@
 addEventListener('pagereveal', e => e.viewTransition?.ready.catch(() => {}));
 document.body.insertAdjacentHTML('afterbegin', `<div id="frame">
   <svg id="stage" viewBox="0 0 1600 900" role="img" aria-label="Lesson animation">
-    <defs>
-      <filter id="grain" x="0" y="0" width="100%" height="100%">
-        <feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="7" />
-        <feColorMatrix values="0 0 0 0 .92  0 0 0 0 .95  0 0 0 0 .9  0 0 0 .07 0" />
-      </filter>
-      <radialGradient id="vignette" cx=".5" cy=".45" r=".75">
-        <stop offset=".6" stop-color="#000" stop-opacity="0" />
-        <stop offset="1" stop-color="#000" stop-opacity=".35" />
-      </radialGradient>
-    </defs>
-    <rect width="1600" height="900" fill="#1d2b27" />
-    <rect width="1600" height="900" filter="url(#grain)" />
-    <rect width="1600" height="900" fill="url(#vignette)" />
     <g id="scene"></g>
   </svg>
   <div id="ui"></div>
@@ -80,6 +67,16 @@ document.body.insertAdjacentHTML('afterbegin', `<div id="frame">
   </div>
 </div>`);
 
+// Board colour, grain and vignette are a static CSS background of #stage (engine.css). The grain is a small noise
+// texture made once here: an SVG turbulence filter behind animated content is recomputed on every frame in Firefox.
+{
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const x = c.getContext('2d'), d = x.createImageData(256, 256);
+  for (let i = 0, s = 7; i < d.data.length; i += 4) { s = s * 16807 % 2147483647; d.data.set([235, 242, 230, s % 36], i); }
+  x.putImageData(d, 0, 0);
+  document.getElementById('stage').style.setProperty('--grain', `url(${c.toDataURL()})`);
+}
+
 /* ---------- drawing helpers ---------- */
 const NS = 'http://www.w3.org/2000/svg';
 const COL = { nat: '#f4a48c', whole: '#86c9e8', int: '#f3c95c', rat: '#e8a0c8', irr: '#8fd6b0', real: '#bba8ee',
@@ -105,11 +102,11 @@ function mk(tag, attrs = {}, parent) {
 // Keys: x y s r o (transform/opacity), d (0..1 stroke drawn), a_<attr> numeric attr, c_<attr> hex colour.
 function st(e) { return e._st || (e._st = { x: 0, y: 0, s: 1, r: 0, o: 1 }); }
 function put(e, o) { Object.assign(st(e), o); render(e); return e; }
+// Unchanged transform/opacity are not rewritten: per-frame updates of still elements cost repaints (notably in Firefox).
 function render(e) {
-  const s = e._st;
-  if (s.x || s.y || s.s !== 1 || s.r) e.setAttribute('transform', `translate(${s.x},${s.y}) rotate(${s.r}) scale(${s.s})`);
-  else e.removeAttribute('transform');
-  e.setAttribute('opacity', s.o);
+  const s = e._st, tf = s.x || s.y || s.s !== 1 || s.r ? `translate(${s.x},${s.y}) rotate(${s.r}) scale(${s.s})` : null;
+  if (tf !== e._tf) { if (tf) e.setAttribute('transform', tf); else e.removeAttribute('transform'); e._tf = tf; }
+  if (s.o !== e._o) { e.setAttribute('opacity', s.o); e._o = s.o; }
   if (s.d !== undefined) {
     e.setAttribute('stroke-dashoffset', 1 - s.d);
     e.style.visibility = s.d < .002 ? 'hidden' : '';
@@ -874,7 +871,8 @@ function camera(p, D, { box, x = 800, y = 450, z, r = 0, bg = COL.board } = {}) 
       const e = k.amp * Math.min(1, (t - k.t0) / .3, (k.t0 + k.dur - t) / .3), w = 2 * Math.PI * k.hz * t;
       sx += e * (Math.sin(w) + .5 * Math.sin(2.3 * w + 1)) / 1.5; sy += e * (Math.sin(1.7 * w + 2) + .5 * Math.sin(3.1 * w)) / 1.5;
     }
-    view.setAttribute('transform', `translate(${sx} ${sy}) rotate(${-s.r}) scale(${s.z}) translate(${-s.x} ${-s.y})`);
+    const tf = `translate(${sx} ${sy}) rotate(${-s.r}) scale(${s.z}) translate(${-s.x} ${-s.y})`;
+    if (tf !== view._tf) view.setAttribute('transform', view._tf = tf);
     const dx = s.x - v0.x, dy = s.y - v0.y;
     for (const L of layers) put(L.g, { x: L.wrap ? dx - ((L.k * dx) % L.wrap + L.wrap) % L.wrap : (1 - L.k) * dx, y: (1 - L.k) * dy });
   }
@@ -928,7 +926,11 @@ function dot(key, v, r = 9, name = v) {
 const arrow = (x, dir) => `M${x - 15 * dir} ${Y0 - 10}L${x} ${Y0}L${x - 15 * dir} ${Y0 + 10}`;
 function panel(t0) {
   if (t0 < .5) S.cleared = true;   // the old panel fades, or this is the first panel after the title
-  if (S.panel) hide(S.panel, t0, .4);
+  if (S.panel) {   // fade the old panel, then take it out of rendering
+    const old = S.panel;
+    hide(old, t0, .4);
+    prog(q => { if (q === 1) old.style.display = 'none'; }, t0 + .4, 0, lin);
+  }
   return (S.panel = G(scene));
 }
 function header(p, str, t0, x = 1000, y = 170) {

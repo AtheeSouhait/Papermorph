@@ -15,7 +15,8 @@ button[hidden] { display: none; }
 /* One fixed 1600×960 frame (900 stage + 60 controls), scaled to fit the window. */
 #frame { position: absolute; left: 50%; top: 50%; width: 1600px; height: 960px; transform: translate(-50%, -50%) scale(var(--k, .5));
   border-radius: 20px; overflow: hidden; background: var(--board); box-shadow: 0 0 0 1px var(--edge), 0 30px 80px rgba(0, 0, 0, .45); }
-#stage { position: absolute; left: 0; top: 0; width: 1600px; height: 900px; display: block; }
+#stage { position: absolute; left: 0; top: 0; width: 1600px; height: 900px; display: block;
+  background: radial-gradient(75% 75% at 50% 45%, rgba(0,0,0,0) 60%, rgba(0,0,0,.35)), var(--grain, none), #1d2b27; }
 #ui { position: absolute; left: 0; top: 0; width: 1600px; height: 900px; pointer-events: none; }
 #ui > * { pointer-events: auto; }
 

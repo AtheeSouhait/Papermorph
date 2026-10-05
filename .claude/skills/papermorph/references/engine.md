@@ -61,6 +61,15 @@ For continuous motion (vehicles, orbits, rolling, scrolling scenery) and camera 
 - Labels drawn in the world scale with the zoom; put text that must stay readable in screen space (the panel) or give world labels a size for the shot's zoom. A beat whose camera shows a picture from its first frame while its first scheduled reveal is late may need `{ lead: false }`.
 - Ease `soft` (cosine in-out) suits camera moves; `io`, `out`, `back`, `lin` or any `p => …` work too.
 
+## Performance (Firefox)
+
+Firefox repaints SVG on the main thread and is the slowest common browser for these pages. Measure in Playwright Firefox as well as Chromium: rAF frame times at beat transitions and during camera moves. Headless Chromium hides paint cost.
+
+- Never put an SVG filter behind animated content (the stage grain is a static CSS texture for this reason). Avoid clip-paths on moving or zooming groups where a box or an image does the job.
+- Large shapes under a big camera zoom or roll are expensive: a filled `<circle>` scaled 6× and rotating cost about 200 ms a frame in Firefox, while the same picture as one `<image>` cost about 3 ms. Prefer one image for a big detailed object (a planet, a map), and few elements over many small ones (merge cells into one path per colour, or use an image).
+- Write per-frame attributes and text only when they change (`render()` already skips unchanged transform and opacity). Old panels are set to `display: none` after their fade.
+- Pixel-art sprites: draw `<image>` with `style="image-rendering: pixelated"` at an integer scale, and pre-scale the file (nearest neighbour) so it stays crisp where the style is ignored.
+
 ## Questions
 
 ```js
