@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Motion, Parts 1–3: Relative Motion, Speed and Velocity — Science</title>
+<title>Chapter 9: Motion — Science</title>
 <link rel="stylesheet" href="../lib/engine.css">
 <link rel="expect" href="#bar" blocking="render">
 </head>
@@ -13,8 +13,8 @@
 <script src="audio/en/timings.js"></script>
 <script>
 'use strict';
-// Chapter 9 so far, one page in book order: part 1 (motion; relative motion), part 2 (speed), part 3 (velocity); acceleration comes later.
-const CHAPTER = { number: 9, title: 'Motion · Parts 1–3: Relative Motion, Speed and Velocity', minutes: 13, language: 'en' };
+// Chapter 9, one page in book order: part 1 (motion; relative motion), part 2 (speed), part 3 (velocity), part 4 (acceleration).
+const CHAPTER = { number: 9, title: 'Motion', minutes: 18, language: 'en' };
 
 /* ---------- chapter helpers ---------- */
 const V = 150;                                   // 30 mph on screen, in world px per second (same scale in every road beat)
@@ -102,6 +102,29 @@ function arrowAt(el, x, y, len, a, head = 18) {
   return el;
 }
 const compassWord = a => a > -22.5 ? 'east' : a > -67.5 ? 'north-east' : 'north';
+
+/* ---------- section 4 (acceleration) helpers ---------- */
+const ACC = '#ee6fd0';                           // acceleration arrows and readouts: magenta (velocity stays yellow)
+// The overhead street with an L-shaped corner (parts 3 and 4). pose(d): [x, y, heading°] at distance d along the road.
+function overheadStreet(w) {
+  const R0 = 250, L1 = 1050, ARC = Math.PI / 2 * R0;
+  mk('rect', { x: -200, y: -200, width: 2000, height: 1300, fill: PH.grass }, w);
+  [[180, 260], [420, 260], [660, 260]].forEach(([x, y]) => phBlock(w, x, y, 150, 120, '#a65d4b', { top: 10, right: 12, ol: 0 }));
+  [[1320, 560], [1250, 760], [60, 860]].forEach(([x, y]) => phBlock(w, x, y, 64, 64, '#4e9a5a', { top: 8, right: 8, ol: 0 }));
+  const route = `M-300 620H850A${R0} ${R0} 0 0 0 1100 370V-400`;
+  path(w, route, { stroke: PH.road, 'stroke-width': 130, 'stroke-linecap': 'butt' });
+  path(w, route, { stroke: PH.line, 'stroke-width': 4, 'stroke-dasharray': '40 40', opacity: .6 });
+  const pose = d => d < L1 ? [-200 + d, 620, 0] : d < L1 + ARC ? (th => [850 + R0 * Math.sin(th), 370 + R0 * Math.cos(th), -th * 180 / Math.PI])((d - L1) / R0) : [1100, 370 - (d - L1 - ARC), -90];
+  return { pose, R0, L1, ARC, cx: 850, cy: 370 };
+}
+// "velocity / acceleration" colour key at the top left.
+function vaKey(p, t0, y = 70) {
+  const g = G(p, { o: 0 });
+  arrowAt(path(g, '', { stroke: VEL, 'stroke-width': 7 }), 70, y, 60, 0, 14); T(g, 'velocity', { x: 146, y: y + 10, size: 28, weight: 700, fill: VEL });
+  arrowAt(path(g, '', { stroke: ACC, 'stroke-width': 7 }), 300, y, 60, 0, 14); T(g, 'acceleration', { x: 376, y: y + 10, size: 28, weight: 700, fill: ACC });
+  show(g, t0);
+  return g;
+}
 
 /* ---------- beats ---------- */
 const BEATS = [
@@ -619,13 +642,7 @@ const BEATS = [
   const top = camera(p, D);
   put(top.el, { o: 0 }); show(top.el, ab, .8);
   const w = top.world;
-  mk('rect', { x: -200, y: -200, width: 2000, height: 1300, fill: PH.grass }, w);
-  [[180, 260], [420, 260], [660, 260]].forEach(([x, y]) => phBlock(w, x, y, 150, 120, '#a65d4b', { top: 10, right: 12, ol: 0 }));
-  [[1320, 560], [1250, 760], [60, 860]].forEach(([x, y]) => phBlock(w, x, y, 64, 64, '#4e9a5a', { top: 8, right: 8, ol: 0 }));
-  const route = `M-300 620H850A${R0} ${R0} 0 0 0 1100 370V-400`;
-  path(w, route, { stroke: PH.road, 'stroke-width': 130, 'stroke-linecap': 'butt' });
-  path(w, route, { stroke: PH.line, 'stroke-width': 4, 'stroke-dasharray': '40 40', opacity: .6 });
-  const pose = d => d < L1 ? [-200 + d, 620, 0] : d < L1 + ARC ? (th => [850 + R0 * Math.sin(th), 370 + R0 * Math.cos(th), -th * 180 / Math.PI])((d - L1) / R0) : [1100, 370 - (d - L1 - ARC), -90];
+  const { pose } = overheadStreet(w);
   // Faint copies of the arrow where the car was: the direction turns, the length (speed) doesn't.
   const marks = [L1 - 1, L1 + ARC / 2, L1 + ARC].map(dd => { const [x, y, a] = pose(dd); return arrowAt(path(w, '', { stroke: VEL, 'stroke-width': 6, opacity: 0 }), x, y, 150, a); });
   const car = phTop(w, 'car_top'), arr = path(w, '', { stroke: VEL, 'stroke-width': 9 });
@@ -691,6 +708,168 @@ const BEATS = [
     tw(g, { o: 1, x: 0 }, m(mark), .6);
   });
   txt(p, 'Next: how velocity changes over time, acceleration.', 800, 760, m('end'), { size: 32, fill: COL.dim, weight: 500 });
+}],
+/* ---------- part 4: acceleration ---------- */
+['part4', 'Part 4 · Acceleration', (m, D) => {
+  const p = panel(0);
+  const cam = camera(p, D, { x: 800, y: 285, z: .9 });
+  const road = phRoad(cam), car = phCar(road.vehicles, { y: ROAD.near });
+  const av = path(road.front, '', { stroke: VEL, 'stroke-width': 8 }), aa = path(road.front, '', { stroke: ACC, 'stroke-width': 8 });
+  clockRun(t => {
+    const x = -150 + 40 * t + 30 * t * t, v = 40 + 60 * t;    // speeding up from the left
+    put(car, { x }); phRoll(car, x); arrowAt(av, x - 40, ROAD.near - 130, v * .35, 0); arrowAt(aa, x - 40, ROAD.near - 160, 90, 0);
+  }, D);
+  const g = G(p, { o: 0, y: 24 });
+  T(g, 'Chapter 9 · Motion', { x: 800, y: 130, size: 28, fill: COL.dim, anchor: 'middle' });
+  phLabel(g, 'Acceleration', { x: 800, y: 250, size: 120, weight: 600 });
+  tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+  txt(p, 'Part 4 · Speeding up, slowing down, turning', 800, 320, m('q'), { size: 36, fill: COL.dim });
+}],
+['accel', 'Three ways to accelerate', (m, D) => {
+  const p = panel(0);
+  txt(p, 'Acceleration: the rate at which velocity changes', 800, 140, .2, { size: 40 });
+  vaKey(p, m('ways'));
+  const W = 460, Y = 230, H = 400, xs = [70, 570, 1070];
+  const box = (i, t0, title) => {
+    const cam = camera(p, D, { box: [xs[i], Y, W, H], x: i < 2 ? 760 : 800, y: i < 2 ? 470 : 450, z: .5 });
+    put(cam.el, { o: 0 }); show(cam.el, m('ways') + .2 * i);
+    const lab = phLabel(p, title, { x: xs[i] + W / 2, y: Y + H + 52, size: 34, o: 0 }); show(lab, m('ways') + .2 * i); pulse(lab, t0, 1.25);
+    return cam;
+  };
+  // Each box loops a 3-second clip, so all three keep moving while the narration names them.
+  const side = (cam, f) => {
+    const w = cam.world;
+    phBlock(w, 0, 520, 1600, 120, PH.road, { top: 0, ol: 0 });
+    const car = phCar(w, { y: 600 }), av = path(w, '', { stroke: VEL, 'stroke-width': 14 }), aa = path(w, '', { stroke: ACC, 'stroke-width': 14 });
+    return t => { const [x, v, dir] = f(t % 3); put(car, { x }); phRoll(car, x); arrowAt(av, x - 60, 440, v, 0, 30); arrowAt(aa, x - 60 + (dir < 0 ? 180 : 0), 360, 180, dir > 0 ? 0 : 180, 30); };
+  };
+  const up = side(box(0, m('up'), 'speeding up'), u => [380 + 60 * u + 45 * u * u, 60 + 90 * u, 1]);
+  const down = side(box(1, m('down'), 'slowing down'), u => [380 + 330 * u - 45 * u * u, 330 - 90 * u, -1]);
+  const tc = box(2, m('turn'), 'changing direction'), tw3 = tc.world;
+  mk('rect', { x: 0, y: 0, width: 1600, height: 900, fill: PH.grass }, tw3);
+  mk('circle', { cx: 800, cy: 450, r: 300, fill: 'none', stroke: PH.road, 'stroke-width': 130 }, tw3);
+  const car = phTop(tw3, 'car_top', { s: 1.6 }), av = path(tw3, '', { stroke: VEL, 'stroke-width': 14 }), aa = path(tw3, '', { stroke: ACC, 'stroke-width': 14 });
+  clockRun(t => {
+    up(t); down(t);
+    const th = -t * 1.1, x = 800 + 300 * Math.cos(th), y = 450 + 300 * Math.sin(th), hd = th * 180 / Math.PI - 90;   // counterclockwise
+    put(car, { x, y, r: hd }); arrowAt(av, x, y, 220, hd, 30); arrowAt(aa, x, y, 170, th * 180 / Math.PI + 180, 30);
+  }, D);
+}],
+['formula', 'Acceleration = change in velocity ÷ time', (m, D) => {
+  const p = panel(0);
+  const X0 = 200, U = 20, TY = 660, xm = v => X0 + U * v, e0 = m('ex', .2), e1 = e0 + 5;
+  const y = 170;
+  show(T(p, 'acceleration =', { x: 470, y: y + 14, size: 46, weight: 700, anchor: 'end', fill: ACC, o: 0 }), m('f'));
+  show(wfrac(p, 'final velocity − starting velocity', 'time', 820, y, { size: 38, ct: VEL, cb: TIME }), m('f', .3));
+  show(T(p, '=', { x: 1145, y: y + 14, size: 46, weight: 700, anchor: 'middle', o: 0 }), m('calc'));
+  show(wfrac(p, '25 − 5 m/s', '4 s', 1275, y, { size: 38, ct: VEL, cb: TIME }), m('calc'));
+  const ans = T(p, '= 5 m/s²', { x: 1150, y: y + 110, size: 52, weight: 700, anchor: 'start', fill: ACC, o: 0 });
+  pop(put(ans, { s: .6 }), m('ans'));
+  meterTrack(p, { x0: X0, U, y: TY, to: 60, every: 10 });
+  const car = phCar(p, { x: xm(0), y: TY, s: .6 }), clk = simClock(p, 1460, 360, 40);
+  const vl = phLabel(p, '', { size: 30, fill: VEL, o: 0 }); show(vl, e0 - .3);
+  // A flag every second, at the car's position, with its velocity: 5, 10, 15, 20, 25 m/s. The gaps grow.
+  const flags = [0, 1, 2, 3, 4].map(k => {
+    const g = G(p, { x: xm(5 * k + 2.5 * k * k), y: TY, o: 0 });
+    mk('rect', { x: -2, y: -150, width: 4, height: 150, fill: VEL, opacity: .7 }, g);
+    T(g, `${5 + 5 * k} m/s`, { y: -160, size: 26, weight: 700, fill: VEL, anchor: 'middle' });
+    T(g, `${k} s`, { y: 110, size: 24, weight: 700, fill: TIME, anchor: 'middle' });
+    return g;
+  });
+  txt(p, 'every second: 5 m/s faster', 800, 400, m('unit', .4), { size: 36, fill: ACC });
+  clockRun(t => {
+    const s = 4 * ramp(t, e0, e1), x = xm(5 * s + 2.5 * s * s);
+    put(car, { x }); phRoll(car, (x - X0) / .6); clk.set(s);
+    put(vl, { x, y: TY - 80, o: s < 4 ? 1 : 0 }); phText(vl, `${Math.round(5 + 5 * s)} m/s`);
+    flags.forEach((f, k) => put(f, { o: t >= e0 && s >= k - 1e-6 ? 1 : 0 }));
+  }, D);
+}, { lead: false }],
+['sign', 'Positive and negative acceleration', (m, D) => {
+  const p = panel(0);
+  const g0 = m('gas'), b0 = m('brake'), A = 60;   // px/s²; 12 px/s = 1 m/s on screen, so A = 5 m/s²
+  // Velocity: 60 px/s, gas 3 s up to 240, cruise, brake 4 s down to 0. x(t) is its integral.
+  const v = t => t < g0 ? 60 : t < g0 + 3 ? 60 + A * (t - g0) : t < b0 ? 240 : Math.max(0, 240 - A * (t - b0));
+  const xAt = t => { const a = Math.min(t, g0), b = Math.min(Math.max(t - g0, 0), 3), c = Math.min(Math.max(t - g0 - 3, 0), b0 - g0 - 3), d = Math.min(Math.max(t - b0, 0), 4);
+    return 60 * a + 60 * b + A * b * b / 2 + 240 * c + 240 * d - A * d * d / 2; };
+  const cam = camera(p, D, { x: 800, y: 560, z: 1 });
+  cam.cut({ x: t => 300 + xAt(t) + 150 }, 0);   // follow: the road streams faster or slower behind the car
+  const road = phRoad(cam), car = phCar(road.vehicles, { y: ROAD.near });
+  const av = path(road.front, '', { stroke: VEL, 'stroke-width': 8 }), aa = path(road.front, '', { stroke: ACC, 'stroke-width': 8 });
+  const vg = G(p), vl = phLabel(vg, '', { size: 30, fill: VEL }), ag = G(p), al = phLabel(ag, '', { size: 30, fill: ACC });
+  vaKey(p, .2);
+  const pedal = (x, label, sign, col) => {
+    const g = G(p, { x, y: 820 });
+    phBlock(g, -40, -110, 80, 110, '#59625e', { top: 6, right: 8, ol: 0 });
+    T(g, label, { y: 44, size: 26, weight: 700, fill: COL.chalk, anchor: 'middle' });
+    T(g, sign, { y: -36, size: 54, weight: 700, fill: col, anchor: 'middle' });
+    return g;
+  };
+  const brake = pedal(1300, 'brake', '−', ACC), gas = pedal(1440, 'gas', '+', ACC);
+  clockRun(t => {
+    const x = 300 + xAt(t), vv = v(t), acc = t >= g0 && t < g0 + 3 ? 1 : t >= b0 && vv > 0 ? -1 : 0;
+    put(car, { x }); phRoll(car, x);
+    arrowAt(av, x - 60, ROAD.near - 140, vv * .55, 0); arrowAt(aa, acc > 0 ? x - 60 : x + 60, ROAD.near - 180, acc ? 110 : 0, acc > 0 ? 0 : 180);
+    phText(vl, `velocity: ${Math.round(vv / 12)} m/s →`); cam.track(vl, x, ROAD.near - 210, t);
+    phText(al, acc ? `acceleration: ${acc > 0 ? '+' : '−'}5 m/s²` : 'acceleration: 0'); cam.track(al, x, ROAD.near - 250, t);
+    put(gas, { y: acc > 0 ? 832 : 820 }); put(brake, { y: acc < 0 ? 832 : 820 });
+  }, D);
+  runs(p, [['negative acceleration = ', COL.chalk], ['deceleration', ACC]], { x: 700, y: 870, size: 36, weight: 700 });
+  show(p.lastChild, m('decel'));
+}],
+['turnfeel', 'Turning is accelerating', (m, D) => {
+  const p = panel(0);
+  const cam = camera(p, D), { pose, L1, ARC, cx, cy } = overheadStreet(cam.world), V3 = 70, t0 = m('dir') - L1 / V3;
+  const car = phTop(cam.world, 'car_top'), av = path(cam.world, '', { stroke: VEL, 'stroke-width': 9 }), aa = path(cam.world, '', { stroke: ACC, 'stroke-width': 9 });
+  const feel = path(cam.world, '', { stroke: COL.chalk, 'stroke-width': 6, 'stroke-dasharray': '12 10' });
+  const fg = G(p, { o: 0 }), fl = phLabel(fg, 'you feel pushed outward', { size: 30 });
+  const ugh = phLabel(cam.world, 'UGH!', { size: 34, fill: COL.chalk, o: 0 });
+  vaKey(p, .2);
+  const sp = phLabel(p, 'speed: steady', { x: 70, y: 140, size: 30, anchor: 'start', o: 0 }); show(sp, m('dir'));
+  const tf = m('feel');
+  clockRun(t => {
+    const d = V3 * (t - t0), [x, y, a] = pose(d), r = a * Math.PI / 180, onArc = d > L1 && d < L1 + ARC;
+    put(car, { x, y, r: a }); arrowAt(av, x + 80 * Math.cos(r), y + 80 * Math.sin(r), 140, a);
+    const ia = Math.atan2(cy - y, cx - x) * 180 / Math.PI;      // toward the centre of the turn
+    arrowAt(aa, x, y, onArc ? 120 : 0, ia); arrowAt(feel, x, y, onArc && t > m('feel') ? 110 : 0, ia + 180, 16);
+    cam.track(fl, x - 260 * Math.cos(ia * Math.PI / 180), y - 260 * Math.sin(ia * Math.PI / 180) + 30, t);
+    const on = onArc && t > tf ? 1 : 0; put(fg, { o: on }); put(ugh, { x: x + 60, y: y - 70, o: on, s: on });
+  }, D);
+}],
+['q4', 'Quick check', (m, D) => {
+  const p = panel(0);
+  const bee = phTop(p, 'bee', { s: 1.2 }), av = path(p, '', { stroke: VEL, 'stroke-width': 7 });
+  mk('circle', { cx: 800, cy: 270, r: 170, fill: 'none', stroke: COL.faint, 'stroke-width': 3, 'stroke-dasharray': '10 12' }, p);
+  T(p, 'a bee flying in a circle at a steady speed', { x: 800, y: 500, size: 26, fill: COL.dim, anchor: 'middle' });
+  clockRun(t => {
+    const th = -.9 * t, x = 800 + 170 * Math.cos(th), y = 270 + 170 * Math.sin(th), hd = th * 180 / Math.PI - 90;
+    put(bee, { x, y }); phFace(bee, Math.cos(hd * Math.PI / 180) < 0 ? -1 : 1); arrowAt(av, x, y, 90, hd, 14);
+  }, D);
+}, { ask: done => quiz(Q_CARD, [
+  { id: 'c-bee', prompt: ['A bee flies in a circle at a steady speed. Is it ', h('b', '', 'accelerating'), '?'],
+    build: choice([['yes: its direction keeps changing'], ['no: its speed stays the same']], 0,
+      'Its velocity keeps changing direction, so it is accelerating all the time.',
+      [null, 'Acceleration is a change in velocity, and velocity includes direction. The bee keeps turning.']) },
+  { id: 'c-3ways', prompt: ['Which of these is ', h('b', '', 'not'), ' acceleration?'],
+    build: choice([['speeding up'], ['slowing down'], ['changing direction'], ['a steady speed in a straight line']], 3,
+      'Same speed, same direction: the velocity does not change, so there is no acceleration.',
+      ['Speeding up changes the velocity: that is acceleration.', 'Slowing down changes the velocity too: negative acceleration.', 'A change of direction changes the velocity: that is acceleration.', null]) },
+  { id: 'c-acc', prompt: ['A runner speeds up from 2 to 8 meters per second in 3 seconds.'],
+    build: blanks([{ parts: ['acceleration = (8 − 2) ÷ 3 = ', { box: '2' }, ' meters per second squared'], why: '8 − 2 = 6, and 6 ÷ 3 = 2.', hint: 'Subtract the starting velocity from the final one, then divide by the time.' }]) },
+], done) }],
+['wrap4', 'Summary · Acceleration', (m, D) => {
+  const p = panel(0);
+  txt(p, 'Acceleration', 800, 120, .2, { size: 40, fill: COL.dim });
+  [['Acceleration is the rate at which velocity changes.', 'w1'],
+   ['It happens when something speeds up, slows down, or changes direction.', 'w2'],
+   ['acceleration = (final velocity − starting velocity) ÷ time, in m/s².', 'w3'],
+   ['Positive speeds up; negative (deceleration) slows down.', 'w4']].forEach(([s, mark], i) => {
+    const g = G(p, { x: -16, y: 250 + i * 120, o: 0 });
+    mk('rect', { x: 144, y: -38, width: 52, height: 52, rx: 6, fill: PH.ref }, g);
+    T(g, String(i + 1), { x: 170, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
+    T(g, s, { x: 230, size: 36, weight: 600 });
+    tw(g, { o: 1, x: 0 }, m(mark), .6);
+  });
+  txt(p, 'Next: the chapter practice.', 800, 780, m('w4', 5), { size: 32, fill: COL.dim, weight: 500 });
 }],
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
 

@@ -659,5 +659,219 @@ window.TIMINGS = {
     "Acceleration."
    ]
   ]
+ },
+ "part4": {
+  "dur": 6.624,
+  "marks": {
+   "q": 2.461
+  },
+  "cues": [
+   [
+    0.104,
+    "Part four."
+   ],
+   [
+    1.133,
+    "Acceleration."
+   ],
+   [
+    2.461,
+    "Things don't just move."
+   ],
+   [
+    3.906,
+    "They speed up, slow down, and turn."
+   ]
+  ]
+ },
+ "accel": {
+  "dur": 14.448,
+  "marks": {
+   "ways": 4.479,
+   "up": 10.677,
+   "down": 11.719,
+   "turn": 13.06
+  },
+  "cues": [
+   [
+    0.091,
+    "Acceleration is the rate at which velocity changes with time."
+   ],
+   [
+    4.479,
+    "Whenever an object's velocity changes, it is accelerating."
+   ],
+   [
+    8.607,
+    "That can happen in three ways: speeding up, slowing down, or changing direction."
+   ]
+  ]
+ },
+ "formula": {
+  "dur": 26.928,
+  "marks": {
+   "f": 1.745,
+   "t": 5.195,
+   "ex": 7.253,
+   "calc": 13.281,
+   "ans": 18.034,
+   "unit": 20.456
+  },
+  "cues": [
+   [
+    0.104,
+    "To find an acceleration, subtract the starting velocity from the final velocity, and divide by the time it took."
+   ],
+   [
+    7.253,
+    "This car goes from five meters per second to twenty-five meters per second in four seconds."
+   ],
+   [
+    13.281,
+    "Twenty-five minus five is twenty."
+   ],
+   [
+    16.12,
+    "Twenty divided by four is five meters per second squared."
+   ],
+   [
+    20.456,
+    "Meters per second squared means the velocity grows by five meters per second, every second."
+   ]
+  ]
+ },
+ "sign": {
+  "dur": 20.712,
+  "marks": {
+   "gas": 2.591,
+   "brake": 10.547,
+   "decel": 16.81
+  },
+  "cues": [
+   [
+    0.104,
+    "Acceleration has a direction too."
+   ],
+   [
+    2.591,
+    "Press the gas pedal, and the acceleration points the same way the car is moving."
+   ],
+   [
+    7.839,
+    "It is positive, and the car speeds up."
+   ],
+   [
+    10.547,
+    "Press the brake, and the acceleration points the other way."
+   ],
+   [
+    14.128,
+    "It is negative, and the car slows down."
+   ],
+   [
+    16.81,
+    "Negative acceleration is also called deceleration."
+   ]
+  ]
+ },
+ "turnfeel": {
+  "dur": 12.552,
+  "marks": {
+   "dir": 3.802,
+   "feel": 6.862
+  },
+  "cues": [
+   [
+    0.091,
+    "Turning is accelerating too, even at a steady speed, because the direction of the velocity changes."
+   ],
+   [
+    6.862,
+    "That is why, when a car goes around a corner, you feel pushed toward the outside of the turn."
+   ]
+  ]
+ },
+ "q4": {
+  "dur": 2.376,
+  "marks": {},
+  "cues": [
+   [
+    0.091,
+    "Quick check."
+   ],
+   [
+    1.12,
+    "Acceleration."
+   ]
+  ]
+ },
+ "wrap4": {
+  "dur": 24.288,
+  "marks": {
+   "w1": 0.977,
+   "w2": 5.078,
+   "w3": 10.312,
+   "w4": 16.953
+  },
+  "cues": [
+   [
+    0.104,
+    "To sum up."
+   ],
+   [
+    0.977,
+    "Acceleration is the rate at which velocity changes."
+   ],
+   [
+    5.078,
+    "Something accelerates when it speeds up, slows down, or changes direction."
+   ],
+   [
+    10.312,
+    "Acceleration equals the change in velocity divided by the time, in meters per second squared."
+   ],
+   [
+    16.953,
+    "Positive acceleration speeds things up; negative acceleration, or deceleration, slows them down."
+   ]
+  ]
+ },
+ "final1": {
+  "dur": 3.696,
+  "marks": {},
+  "cues": [
+   [
+    0.104,
+    "Chapter practice."
+   ],
+   [
+    1.641,
+    "First, motion and speed."
+   ]
+  ]
+ },
+ "final2": {
+  "dur": 2.856,
+  "marks": {},
+  "cues": [
+   [
+    0.104,
+    "Now velocity and acceleration."
+   ]
+  ]
+ },
+ "finish": {
+  "dur": 2.928,
+  "marks": {},
+  "cues": [
+   [
+    0.104,
+    "That's the whole chapter on motion."
+   ],
+   [
+    2.031,
+    "Well done!"
+   ]
+  ]
  }
 };
