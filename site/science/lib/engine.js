@@ -926,12 +926,20 @@ function dot(key, v, r = 9, name = v) {
 const arrow = (x, dir) => `M${x - 15 * dir} ${Y0 - 10}L${x} ${Y0}L${x - 15 * dir} ${Y0 + 10}`;
 function panel(t0) {
   if (t0 < .5) S.cleared = true;   // the old panel fades, or this is the first panel after the title
-  if (S.panel) {   // fade the old panel, then take it out of rendering
-    const old = S.panel;
+  const old = S.panel;
+  if (old && t0 < .5) retire(old);
+  else if (old) {   // a panel change later in the beat stays on the beat clock
     hide(old, t0, .4);
     prog(q => { if (q === 1) old.style.display = 'none'; }, t0 + .4, 0, lin);
   }
   return (S.panel = G(scene));
+}
+// Take a beat's old picture away on wall time: a 150 ms fade, then out of rendering. On the beat clock the fade would
+// wait for the new clip's audio to start (a few hundred ms in Firefox) with the old, frozen scene still showing.
+function retire(e) {
+  e.style.transition = 'opacity .15s linear';
+  e.style.opacity = '0';
+  setTimeout(() => { e.style.display = 'none'; }, 160);
 }
 function header(p, str, t0, x = 1000, y = 170) {
   const h = T(p, str, { x, y, size: 30, fill: COL.dim, weight: 600, o: 0 });
