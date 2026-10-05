@@ -85,7 +85,7 @@ const UI = '"Avenir Next","Segoe UI","Helvetica Neue",Arial,sans-serif';
 const MATH = '"STIX Two Text","Cambria Math","Iowan Old Style",Palatino,Georgia,serif';
 const NAME = { nat: 'Natural', whole: 'Whole', int: 'Integers', rat: 'Rational', irr: 'Irrational', real: 'Real' };
 // Card positions inside the 1600×900 picture.
-const BAND = { x: 96, y: 686, w: 1408, cls: 'band' };      // bottom band (moves up when taller than the space left)
+const BAND = { x: 96, y: 686, w: 1408, cls: 'band' };      // below the number line
 const RIGHT = { x: 1258, y: 546, w: 330, cls: 'side', maxH: 346 };    // right of the number map
 const TOPR = { x: 960, y: 70, w: 624, cls: 'side', maxH: 470 };   // top right, above the number line
 const SCREEN = { x: 0, y: 0, w: 1600, cls: 'screen' };
@@ -1011,19 +1011,11 @@ function rich(parts, size = 28) {
   for (const p of [].concat(parts)) s.append(typeof p === 'string' || p instanceof Node ? p : mathEl(p.m, size));
   return s;
 }
-// A card at pos; a band card keeps its bottom on the stage: when its content grows (a long question, feedback),
-// it moves up rather than running under the player bar.
 function card(pos, cls) {
   const c = h('div', `card ${pos.cls} ${cls}`);
   Object.assign(c.style, { left: pos.x + 'px', top: pos.y + 'px', width: pos.w + 'px' });
   if (pos.maxH) c.style.maxHeight = pos.maxH + 'px';
   $('ui').append(c);
-  if (pos.cls === 'band') {
-    const fit = () => { c.style.top = Math.max(16, Math.min(pos.y, 900 - 16 - c.offsetHeight)) + 'px'; };
-    const ro = new ResizeObserver(fit);
-    ro.observe(c); fit();
-    P.cleanup.push(() => ro.disconnect());
-  }
   return c;
 }
 // The guide: an infinity sign whose two loops are its eyes. Drawn in SVG so it can blink, hop and wobble.
