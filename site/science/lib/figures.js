@@ -48,7 +48,7 @@ const PH_SPR = { car: [32, 13], truck: [44, 24], lamp: [7, 27], tree: [16, 20], 
   you: [9, 15], you_walk1: [7, 15], you_walk2: [11, 15], friend: [9, 15], friend_walk1: [7, 15], friend_walk2: [11, 15],
   runner: [7, 15], runner_walk1: [6, 15], runner_walk2: [11, 15], dolphin: [25, 8], walrus: [20, 11], light_red: [6, 21], light_green: [6, 21],
   car_top: [18, 8], you_top: [7, 7], bee: [9, 5],
-  you_point: [13, 15], friend_point: [13, 15], rider: [8, 15], bike: [16, 10], cart: [14, 11], can: [5, 8], can_crushed: [7, 5], apple: [6, 6] };   // *_top: seen from above, facing east; their origin is the centre (phTop)
+  you_point: [13, 15], friend_point: [13, 15], rider: [8, 15], bike: [16, 10], cart: [14, 11], can: [5, 8], can_crushed: [7, 5], apple: [6, 6], you_down: [15, 5] };   // *_top: seen from above, facing east; their origin is the centre (phTop)
 function phSprite(p, name, { x = 0, y = 0, s = 1, o = 1 } = {}) {
   const g = G(p, { x, y, s, o });
   g._in = mk('g', {}, g);                         // mirrored by phFace
