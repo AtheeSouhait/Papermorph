@@ -487,5 +487,177 @@ window.TIMINGS = {
     "Next, we'll give speed a direction: velocity."
    ]
   ]
+ },
+ "part3": {
+  "dur": 7.512,
+  "marks": {
+   "q": 2.253
+  },
+  "cues": [
+   [
+    0.104,
+    "Part three."
+   ],
+   [
+    1.146,
+    "Velocity."
+   ],
+   [
+    2.253,
+    "Speed tells us how fast something moves."
+   ],
+   [
+    4.831,
+    "Velocity also tells us which way."
+   ]
+  ]
+ },
+ "velocity": {
+  "dur": 26.832,
+  "marks": {
+   "jog": 3.568,
+   "turn": 7.07,
+   "same": 11.641,
+   "diff": 15.143,
+   "plus": 17.201,
+   "minus": 19.922,
+   "sign": 22.344
+  },
+  "cues": [
+   [
+    0.104,
+    "Velocity is speed in a certain direction."
+   ],
+   [
+    3.568,
+    "Say you jog at two meters per second, to the right."
+   ],
+   [
+    7.07,
+    "Then you turn around and jog two meters per second the other way."
+   ],
+   [
+    11.641,
+    "Your speed stays the same: two meters per second."
+   ],
+   [
+    15.143,
+    "But your velocity is different."
+   ],
+   [
+    17.201,
+    "First it was plus two meters per second, then minus two meters per second."
+   ],
+   [
+    22.344,
+    "Same size, opposite direction."
+   ],
+   [
+    24.753,
+    "The sign tells the direction."
+   ]
+  ]
+ },
+ "change": {
+  "dur": 12.408,
+  "marks": {
+   "spd": 3.307,
+   "dir": 6.706
+  },
+  "cues": [
+   [
+    0.104,
+    "So velocity can change in two ways."
+   ],
+   [
+    3.307,
+    "If the speed changes, the velocity changes."
+   ],
+   [
+    6.706,
+    "And if the direction changes, the velocity changes too, even at the same speed."
+   ]
+  ]
+ },
+ "corner": {
+  "dur": 16.776,
+  "marks": {
+   "above": 1.94,
+   "drive": 3.281,
+   "turn": 6.107,
+   "still": 8.776,
+   "rule": 10.846
+  },
+  "cues": [
+   [
+    0.104,
+    "Here is a car turning a corner."
+   ],
+   [
+    1.94,
+    "Let's watch from above."
+   ],
+   [
+    3.281,
+    "The car keeps a steady ten meters per second."
+   ],
+   [
+    6.107,
+    "As it turns, it heads in a new direction, but its speed stays at ten."
+   ],
+   [
+    10.846,
+    "So when a car turns a corner, its velocity changes, even if its speed stays the same."
+   ]
+  ]
+ },
+ "q3": {
+  "dur": 3.984,
+  "marks": {},
+  "cues": [
+   [
+    0.091,
+    "Quick check."
+   ],
+   [
+    1.12,
+    "Speed, direction, and velocity."
+   ]
+  ]
+ },
+ "wrap3": {
+  "dur": 20.928,
+  "marks": {
+   "w1": 0.964,
+   "w2": 4.479,
+   "w3": 11.693,
+   "end": 16.484
+  },
+  "cues": [
+   [
+    0.104,
+    "To sum up."
+   ],
+   [
+    0.964,
+    "Velocity is speed in a certain direction."
+   ],
+   [
+    4.479,
+    "The same speed in opposite directions gives different velocities, like plus two and minus two meters per second."
+   ],
+   [
+    11.693,
+    "Velocity changes when the speed changes, or when the direction changes."
+   ],
+   [
+    16.484,
+    "Next: how velocity changes over time."
+   ],
+   [
+    19.688,
+    "Acceleration."
+   ]
+  ]
  }
 };

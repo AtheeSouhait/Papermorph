@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Motion, Parts 1–2: Relative Motion and Speed — Science</title>
+<title>Motion, Parts 1–3: Relative Motion, Speed and Velocity — Science</title>
 <link rel="stylesheet" href="../lib/engine.css">
 <link rel="expect" href="#bar" blocking="render">
 </head>
@@ -13,8 +13,8 @@
 <script src="audio/en/timings.js"></script>
 <script>
 'use strict';
-// Chapter 9 so far: part 1 (motion; relative motion) and part 2 (speed), one page; velocity and acceleration come later.
-const CHAPTER = { number: 9, title: 'Motion · Parts 1–2: Relative Motion and Speed', minutes: 9, language: 'en' };
+// Chapter 9 so far, one page in book order: part 1 (motion; relative motion), part 2 (speed), part 3 (velocity); acceleration comes later.
+const CHAPTER = { number: 9, title: 'Motion · Parts 1–3: Relative Motion, Speed and Velocity', minutes: 13, language: 'en' };
 
 /* ---------- chapter helpers ---------- */
 const V = 150;                                   // 30 mph on screen, in world px per second (same scale in every road beat)
@@ -93,6 +93,16 @@ const sprintX = tau => SVM * (tau - SK * (1 - Math.exp(-tau / SK))), sprintV = t
 // The stop-and-go car: 15 m/s for 10 s, stopped 8 s at a red light, 12.5 m/s for 12 s: 300 m in 30 s.
 const tripX = s => s < 10 ? 15 * s : s < 18 ? 150 : 150 + 12.5 * (Math.min(s, 30) - 18);
 const tripV = s => s < 10 ? 15 : s < 18 ? 0 : s < 30 ? 12.5 : 0;
+
+/* ---------- section 3 (velocity) helpers ---------- */
+const VEL = COL.int;                             // velocity arrows and readouts: yellow
+// Set path el to an arrow from (x, y), len long, at angle a (degrees; 0 = right, −90 = up).
+function arrowAt(el, x, y, len, a, head = 18) {
+  const r = a * Math.PI / 180, c = Math.cos(r), s = Math.sin(r), x2 = x + len * c, y2 = y + len * s;
+  el.setAttribute('d', len < 2 ? '' : `M${x} ${y}L${x2} ${y2}M${x2 - head * c - head * .6 * s} ${y2 - head * s + head * .6 * c}L${x2} ${y2}L${x2 - head * c + head * .6 * s} ${y2 - head * s - head * .6 * c}`);
+  return el;
+}
+const compassWord = a => a > -22.5 ? 'east' : a > -67.5 ? 'north-east' : 'north';
 
 /* ---------- beats ---------- */
 const BEATS = [
@@ -528,6 +538,160 @@ const BEATS = [
     tw(g, { o: 1, x: 0 }, m(mark), .6);
   });
   txt(p, 'Next: speed with a direction, velocity.', 800, 780, m('end'), { size: 32, fill: COL.dim, weight: 500 });
+}],
+/* ---------- part 3: velocity ---------- */
+['part3', 'Part 3 · Velocity', (m, D) => {
+  const p = panel(0);
+  const cam = camera(p, D, { x: 800, y: 285, z: .9 });
+  const road = phRoad(cam);
+  const a = phCar(road.vehicles, { y: ROAD.near }), b = phCar(road.vehicles, { y: ROAD.far });
+  phFace(b, -1);
+  const arA = path(road.front, '', { stroke: VEL, 'stroke-width': 8 }), arB = path(road.front, '', { stroke: VEL, 'stroke-width': 8 });
+  clockRun(t => {
+    const xa = -150 + 200 * t, xb = 1750 - 200 * t;
+    put(a, { x: xa }); phRoll(a, xa); put(b, { x: xb }); phRoll(b, -xb);
+    arrowAt(arA, xa - 55, ROAD.near - 130, 110, 0); arrowAt(arB, xb + 55, ROAD.far - 222, 110, 180);
+  }, D);
+  const g = G(p, { o: 0, y: 24 });
+  T(g, 'Chapter 9 · Motion', { x: 800, y: 130, size: 28, fill: COL.dim, anchor: 'middle' });
+  phLabel(g, 'Velocity', { x: 800, y: 250, size: 120, weight: 600 });
+  tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+  txt(p, 'Part 3 · Same speed, which way?', 800, 320, m('q'), { size: 36, fill: COL.dim });
+}],
+['velocity', 'Speed in a direction', (m, D) => {
+  const p = panel(0);
+  const XL = 260, XR = 1340, TY = 640, j0 = m('jog'), LEG = (m('minus') - j0) / 5;   // equal legs: right at "plus", left at "minus"
+  txt(p, 'Velocity = speed in a certain direction', 800, 110, .2, { size: 40 });
+  phBlock(p, 160, TY, 1280, 14, '#8a6f55', { top: 4, ol: 0 });
+  const conv = G(p, { o: 0 });
+  path(conv, arrowPath(900, TY + 70, 1400), { stroke: VEL, 'stroke-width': 5 });
+  T(conv, '+ direction', { x: 1150, y: TY + 120, size: 30, weight: 700, fill: VEL, anchor: 'middle' });
+  path(conv, arrowPath(700, TY + 70, 200), { stroke: VEL, 'stroke-width': 5, opacity: .6 });
+  T(conv, '− direction', { x: 450, y: TY + 120, size: 30, weight: 700, fill: VEL, anchor: 'middle', o: 1 });
+  show(conv, m('sign'));
+  const you = phPerson(p, { x: XL, y: TY });
+  const sp = phLabel(p, 'speed: 2 m/s', { size: 30, o: 0 });
+  const vg = G(p, { o: 0 }), vl = phLabel(vg, '', { size: 30, fill: VEL }), va = path(vg, '', { stroke: VEL, 'stroke-width': 7 });
+  show(sp, j0); show(vg, m('diff'));
+  clockRun(t => {
+    let x = XL, dir = 1;
+    if (t > j0) { const k = Math.floor((t - j0) / LEG), u = (t - j0) / LEG - k; dir = k % 2 ? -1 : 1; x = dir > 0 ? XL + (XR - XL) * u : XR - (XR - XL) * u; }
+    put(you, { x }); phFace(you, dir); if (t > j0) walkTo(you, (t - j0) * 300); else phPose(you);
+    put(sp, { x, y: TY - 230 }); put(vl, { x, y: TY - 190 });
+    phText(vl, dir > 0 ? 'velocity: +2 m/s' : 'velocity: −2 m/s');
+    arrowAt(va, x - 55 * dir, TY - 158, 110, dir > 0 ? 0 : 180);
+  }, D);
+  show(T(p, '+2 m/s →', { x: 560, y: 240, size: 60, weight: 700, fill: VEL, anchor: 'middle', o: 0 }), m('plus'));
+  show(T(p, '−2 m/s ←', { x: 1040, y: 240, size: 60, weight: 700, fill: VEL, anchor: 'middle', o: 0 }), m('minus'));
+  txt(p, 'same size (2 m/s), opposite directions: the sign tells which way', 800, 315, m('sign'), { size: 32, fill: COL.chalk, weight: 500 });
+}],
+['change', 'Two ways to change velocity', (m, D) => {
+  const p = panel(0);
+  const LA = 400, LB = 720, sp0 = m('spd'), dr = m('dir', .6);
+  txt(p, 'A change in velocity means a change in…', 800, 110, .2, { size: 40 });
+  [LA, LB].forEach(y => { phBlock(p, 0, y - 70, 1600, 100, PH.road, { top: 0, ol: 0 }); path(p, `M0 ${y - 20}H1600`, { stroke: PH.line, 'stroke-width': 4, 'stroke-dasharray': '50 60', opacity: .5 }); });
+  const a = phCar(p, { y: LA + 18, s: .6 }), b = phCar(p, { y: LB + 18, s: .6 });
+  const arA = path(p, '', { stroke: VEL, 'stroke-width': 8 }), arB = path(p, '', { stroke: VEL, 'stroke-width': 8 });
+  const lA = phLabel(p, '', { size: 28, fill: VEL }), lB = phLabel(p, '', { size: 28, fill: VEL });
+  const ta = phLabel(p, 'speed', { x: 60, y: LA - 110, size: 44, fill: COL.chalk, anchor: 'start', o: 0 });
+  const tb = phLabel(p, 'direction', { x: 60, y: LB - 110, size: 44, fill: COL.chalk, anchor: 'start', o: 0 });
+  show(ta, sp0 - .3); show(tb, m('dir', -.3));
+  clockRun(t => {
+    const u = Math.max(0, t - sp0), acc = Math.min(u, 3), v = 60 + 60 * acc;   // px/s: 4 → 16 m/s
+    const xa = Math.min(1440, 160 + 60 * t + 30 * acc * acc + 240 * Math.max(0, u - 3));
+    put(a, { x: xa }); phRoll(a, xa / .6); arrowAt(arA, xa - v * .3, LA - 80, v * .6, 0);
+    put(lA, { x: xa, y: LA - 118 }); phText(lA, `velocity: +${Math.round(v / 15)} m/s`);
+    const xb = t < dr ? 300 + 100 * t : 300 + 100 * dr - 100 * (t - dr), db = t < dr ? 1 : -1;
+    put(b, { x: xb }); phFace(b, db); phRoll(b, xb / .6 * db); arrowAt(arB, xb - 45 * db, LB - 80, 90, db > 0 ? 0 : 180);
+    put(lB, { x: xb, y: LB - 118 }); phText(lB, `velocity: ${db > 0 ? '+' : '−'}6 m/s`);
+  }, D);
+}],
+['corner', 'Turning a corner', (m, D) => {
+  const p = panel(0);
+  const ab = m('above'), V2 = 150, R0 = 250, L1 = 1050, ARC = Math.PI / 2 * R0, t0 = m('turn') - L1 / V2;
+  // Side shot first, then a cross-fade to an overhead camera: only from above can we see the turn.
+  const side = camera(p, D, { x: 800, y: 285, z: .9 });
+  const road = phRoad(side), sc = phCar(road.vehicles, { y: ROAD.near });
+  const sTag = txt(p, 'seen from the side', 70, 80, .2, { size: 30, fill: COL.dim, anchor: 'start' });
+  hide(sTag, ab, .4);
+  // Only the overhead camera fades (over the side shot), then the side camera stops rendering: one
+  // half-transparent full-screen group at a time is much cheaper in Firefox than two.
+  prog(q => { if (q === 1) side.el.style.display = 'none'; }, ab + .85, 0, lin);
+  const top = camera(p, D);
+  put(top.el, { o: 0 }); show(top.el, ab, .8);
+  const w = top.world;
+  mk('rect', { x: -200, y: -200, width: 2000, height: 1300, fill: PH.grass }, w);
+  [[180, 260], [420, 260], [660, 260]].forEach(([x, y]) => phBlock(w, x, y, 150, 120, '#a65d4b', { top: 10, right: 12, ol: 0 }));
+  [[1320, 560], [1250, 760], [60, 860]].forEach(([x, y]) => phBlock(w, x, y, 64, 64, '#4e9a5a', { top: 8, right: 8, ol: 0 }));
+  const route = `M-300 620H850A${R0} ${R0} 0 0 0 1100 370V-400`;
+  path(w, route, { stroke: PH.road, 'stroke-width': 130, 'stroke-linecap': 'butt' });
+  path(w, route, { stroke: PH.line, 'stroke-width': 4, 'stroke-dasharray': '40 40', opacity: .6 });
+  const pose = d => d < L1 ? [-200 + d, 620, 0] : d < L1 + ARC ? (th => [850 + R0 * Math.sin(th), 370 + R0 * Math.cos(th), -th * 180 / Math.PI])((d - L1) / R0) : [1100, 370 - (d - L1 - ARC), -90];
+  // Faint copies of the arrow where the car was: the direction turns, the length (speed) doesn't.
+  const marks = [L1 - 1, L1 + ARC / 2, L1 + ARC].map(dd => { const [x, y, a] = pose(dd); return arrowAt(path(w, '', { stroke: VEL, 'stroke-width': 6, opacity: 0 }), x, y, 150, a); });
+  const car = phTop(w, 'car_top'), arr = path(w, '', { stroke: VEL, 'stroke-width': 9 });
+  const spd = phLabel(p, 'speed: 10 m/s', { x: 70, y: 90, size: 40, anchor: 'start', o: 0 });
+  const vg = G(p, { o: 0 }), vl = phLabel(vg, '', { size: 30, fill: VEL });
+  show(spd, m('drive')); show(vg, m('drive')); pulse(spd, m('still'), 1.25);
+  const cmp = G(p, { x: 1470, y: 760, o: 0 });   // bottom right: the velocity label passes the top
+  [[0, -1, 'N'], [1, 0, 'E'], [0, 1, 'S'], [-1, 0, 'W']].forEach(([dx, dy, n]) => {
+    path(cmp, `M0 0L${dx * 44} ${dy * 44}`, { stroke: n === 'N' ? COL.chalk : COL.dim, 'stroke-width': 4 });
+    T(cmp, n, { x: dx * 70, y: dy * 70 + 10, size: 26, weight: 700, fill: COL.chalk, anchor: 'middle' });
+  });
+  show(cmp, ab + .4);
+  clockRun(t => {
+    const xs = -150 + 150 * t; put(sc, { x: xs }); phRoll(sc, xs);
+    const d = Math.max(0, V2 * (t - t0)), [x, y, a] = pose(d), r = a * Math.PI / 180;
+    put(car, { x, y, r: a });
+    const bx = x + 80 * Math.cos(r), by = y + 80 * Math.sin(r);
+    arrowAt(arr, bx, by, 150, a);
+    marks.forEach((e, i) => put(e, { o: d > [L1 - 1, L1 + ARC / 2, L1 + ARC][i] && t > ab ? .35 : 0 }));
+    phText(vl, `velocity: 10 m/s ${compassWord(a)}`);
+    top.track(vl, bx + 330 * Math.cos(r), by + 330 * Math.sin(r) - 40 * Math.abs(Math.cos(r)), t);
+  }, D);
+  runs(p, [['Same speed, new direction: the ', COL.chalk], ['velocity', VEL], [' changes.', COL.chalk]], { x: 800, y: 850, size: 38, weight: 700 });
+  show(p.lastChild, m('rule'));
+}],
+['q3', 'Quick check', (m, D) => {
+  const p = panel(0);
+  const X0 = 520, X1 = 1080, Y0 = 110, Y1 = 390, per = 2 * (X1 - X0 + Y1 - Y0);
+  phBlock(p, X0 - 50, Y0 - 50, X1 - X0 + 100, Y1 - Y0 + 100, PH.walk, { top: 0, ol: 0 });
+  phBlock(p, X0 + 30, Y0 + 30, X1 - X0 - 60, Y1 - Y0 - 60, PH.grass, { top: 0, ol: 0 });
+  [[X0 + 80, Y0 + 70], [X0 + 250, Y0 + 70], [X0 + 420, Y0 + 130]].forEach(([x, y]) => phBlock(p, x, y, 110, 90, '#a65d4b', { top: 8, right: 10, ol: 0 }));
+  T(p, 'one square block', { x: 800, y: Y1 + 40, size: 26, fill: COL.dim, anchor: 'middle' });
+  const walker = phTop(p, 'you_top', { s: .9 }), arr = path(p, '', { stroke: VEL, 'stroke-width': 7 });
+  const pose = d => { d = ((d % per) + per) % per; const w = X1 - X0, h = Y1 - Y0;
+    return d < w ? [X0 + d, Y0, 0] : d < w + h ? [X1, Y0 + d - w, 90] : d < 2 * w + h ? [X1 - (d - w - h), Y1, 180] : [X0, Y1 - (d - 2 * w - h), -90]; };
+  clockRun(t => { const [x, y, a] = pose(220 * t); put(walker, { x, y, r: a }); arrowAt(arr, x + 34 * Math.cos(a * Math.PI / 180), y + 34 * Math.sin(a * Math.PI / 180), 70, a, 14); }, D);
+}, { ask: done => quiz(Q2_CARD, [
+  { id: 'c-vel-need', prompt: ['What do you need to know to describe an object’s ', h('b', '', 'velocity'), '?'],
+    build: choice([['its speed only'], ['its direction only'], ['its speed and its direction']], 2,
+      'Velocity is speed in a certain direction, so it needs both.',
+      ['Speed alone is not velocity: two cars at the same speed can go opposite ways.', 'Direction alone does not say how fast.', null]) },
+  { id: 'c-uturn', prompt: ['A truck drives at 30 kilometers per hour, makes a U-turn, then drives 30 kilometers per hour the other way. What changed?'],
+    build: choice([['its speed'], ['its velocity'], ['both'], ['neither']], 1,
+      'Same speed, opposite direction: the velocity changed, the speed did not.',
+      ['It is 30 kilometers per hour before and after the U-turn: the speed is the same.', null, 'The speed stayed 30 kilometers per hour; only the direction changed.', 'The direction changed, and velocity includes direction.'],
+      () => floatText('velocity changed', 800, 470, VEL)) },
+  { id: 'c-block', prompt: ['You walk once around a square block at the same pace, turning at each of its four corners.'],
+    build: blanks([
+      { parts: ['Your velocity changes ', { box: '4' }, ' times'], why: 'Each corner is a new direction: 4 changes.', hint: 'Velocity changes whenever the direction changes. How many times do you turn?' },
+      { parts: ['Your speed changes ', { box: '0' }, ' times'], why: 'Same pace the whole way: the speed never changes.', hint: 'You keep the same pace. Does your speed ever change?' },
+    ]) },
+], done) }],
+['wrap3', 'Summary · Velocity', (m, D) => {
+  const p = panel(0);
+  txt(p, 'Velocity', 800, 130, .2, { size: 40, fill: COL.dim });
+  [['Velocity is speed in a certain direction.', 'w1'],
+   ['Same speed, opposite directions: different velocities (+2 and −2 m/s).', 'w2'],
+   ['Velocity changes when the speed or the direction changes.', 'w3']].forEach(([s, mark], i) => {
+    const g = G(p, { x: -16, y: 290 + i * 130, o: 0 });
+    mk('rect', { x: 144, y: -38, width: 52, height: 52, rx: 6, fill: PH.ref }, g);
+    T(g, String(i + 1), { x: 170, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
+    T(g, s, { x: 230, size: 36, weight: 600 });
+    tw(g, { o: 1, x: 0 }, m(mark), .6);
+  });
+  txt(p, 'Next: how velocity changes over time, acceleration.', 800, 760, m('end'), { size: 32, fill: COL.dim, weight: 500 });
 }],
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
 

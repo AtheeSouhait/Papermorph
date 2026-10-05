@@ -46,10 +46,12 @@ function phPin(p, o = {}) {
 const PX = 8;                                    // world px per sprite pixel
 const PH_SPR = { car: [32, 13], truck: [44, 24], lamp: [7, 27], tree: [16, 20], house: [18, 14], maya_seated: [7, 7],
   you: [9, 15], you_walk1: [7, 15], you_walk2: [11, 15], friend: [9, 15], friend_walk1: [7, 15], friend_walk2: [11, 15],
-  runner: [7, 15], runner_walk1: [6, 15], runner_walk2: [11, 15], dolphin: [25, 8], walrus: [20, 11], light_red: [6, 21], light_green: [6, 21] };
+  runner: [7, 15], runner_walk1: [6, 15], runner_walk2: [11, 15], dolphin: [25, 8], walrus: [20, 11], light_red: [6, 21], light_green: [6, 21],
+  car_top: [18, 8], you_top: [7, 7] };   // *_top: seen from above, facing east; their origin is the centre (phTop)
 function phSprite(p, name, { x = 0, y = 0, s = 1, o = 1 } = {}) {
   const g = G(p, { x, y, s, o });
-  g._img = mk('image', { style: 'image-rendering: pixelated' }, g);
+  g._in = mk('g', {}, g);                         // mirrored by phFace
+  g._img = mk('image', { style: 'image-rendering: pixelated' }, g._in);
   phFrame(g, name);
   return g;
 }
@@ -60,6 +62,13 @@ function phFrame(g, name) {
   for (const k in a) g._img.setAttribute(k, a[k]);
   g._name = name;
 }
+// Face right (dir > 0) or left (dir < 0): mirrors the picture (and a vehicle's hubs) about the origin.
+function phFace(g, dir) {
+  const left = dir < 0;
+  if (g._left !== left) { g._left = left; if (left) g._in.setAttribute('transform', 'scale(-1,1)'); else g._in.removeAttribute('transform'); }
+}
+// A sprite seen from above, centred on its origin, facing east; turn it with put(g, {r: degrees}) (−90 = north).
+function phTop(p, name, o) { const g = phSprite(p, name, o), [, h] = PH_SPR[name]; g._img.setAttribute('y', -h * PX / 2); return g; }
 // People (120 px tall): role 'you' (lilac), 'friend' (coral) or 'runner'. Poses: stand, walk (two frames per stride; phase in radians).
 const PH_PERSON_H = 120;
 const phPerson = (p, { role = 'you', ...o } = {}) => Object.assign(phSprite(p, role, o), { _role: role });
@@ -72,8 +81,8 @@ function phVehicle(p, name, o) {
   const g = phSprite(p, name, o), [w, h] = PH_SPR[name];
   g._hubs = PH_HUBS[name].map(([hx, hy]) => {
     const x = -w * PX / 2 + hx * PX, y = -h * PX + hy * PX;
-    mk('rect', { x, y, width: 2 * PX, height: 2 * PX, fill: '#3e4751' }, g);
-    return Object.assign(mk('rect', { x, y, width: PX, height: PX, fill: PH.glass }, g), { _x: x, _y: y });
+    mk('rect', { x, y, width: 2 * PX, height: 2 * PX, fill: '#3e4751' }, g._in);
+    return Object.assign(mk('rect', { x, y, width: PX, height: PX, fill: PH.glass }, g._in), { _x: x, _y: y });
   });
   return g;
 }
