@@ -404,7 +404,109 @@ const BEATS = [
   });
   txt(p, 'Next: Newton’s third law.', 800, 760, m('end'), { size: 32, fill: COL.dim, weight: 500 });
 }],
-/*BEATS*/
+/* ---------- part 4: Newton's third law ---------- */
+['part4', 'Part 4 · The third law', (m, D) => {
+  const p = panel(0);
+  phBlock(p, 0, GY, 1600, 340, '#cfe8f3', { top: 8, ol: 0 });
+  const a = phSprite(p, 'you_point', { y: GY }), b = phSprite(p, 'friend_point', { y: GY }), fa = forceArrow(p), fb2 = forceArrow(p);
+  phFace(b, -1);
+  clockRun(t => { const d = Math.min(1, t / 1.2), s = 60 * Math.max(0, t - 1.2); put(a, { x: 760 - s }); put(b, { x: 840 + s });
+    fa.set(790 - s, GY - 110, t < 1.4 ? 90 : 0, 180, ''); fb2.set(810 + s, GY - 110, t < 1.4 ? 90 : 0, 0, ''); }, D);
+  const g = G(p, { o: 0, y: 24 });
+  T(g, 'Chapter 10 · Force and Newton’s laws', { x: 800, y: 130, size: 28, fill: COL.dim, anchor: 'middle' });
+  phLabel(g, 'The Third Law', { x: 800, y: 250, size: 110, weight: 600 });
+  tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+  txt(p, 'Part 4 · Forces come in pairs', 800, 320, m('q'), { size: 36, fill: COL.dim });
+}],
+['law3', 'Action and reaction', (m, D) => {
+  const p = panel(0);
+  const law = G(p, { o: 0 }); phLabel(law, 'For every action, there is an equal and opposite reaction.', { x: 800, y: 130, size: 40 }); show(law, m('law'));
+  phBlock(p, 0, GY, 1600, 340, '#cfe8f3', { top: 8, ol: 0 });
+  T(p, 'on ice, so nothing else gets in the way', { x: 800, y: GY + 60, size: 24, fill: '#3b5560', anchor: 'middle' });
+  const you = phSprite(p, 'you_point', { x: 700, y: GY }), ball = mk('circle', { r: 30, fill: '#22282a', ...phLine(2) }, G(p)).parentNode;
+  [[-8, -10], [6, -14], [2, 4]].forEach(([x, y]) => mk('circle', { cx: x, cy: y, r: 4, fill: '#5a6266' }, ball));
+  const act = forceArrow(p, { w: 11 }), rea = forceArrow(p, { w: 11 });
+  const tb = m('bowl');
+  const eq = G(p, { o: 0 }); phLabel(eq, 'same size: 50 N and 50 N', { x: 800, y: 230, size: 34 }); show(eq, m('equal'));
+  const op = G(p, { o: 0 }); phLabel(op, 'opposite directions, on two different objects', { x: 800, y: 280, size: 34 }); show(op, m('opp'));
+  clockRun(t => {
+    const u = Math.max(0, t - tb), push = t > tb - .2 && t < tb + .6;
+    const xb = 770 + 520 * u, xy = 700 - Math.min(160, 90 * u);        // the ball is light and flies; you are heavy and slide a little
+    put(ball, { x: u > 0 ? Math.min(1300, xb) : 770, y: GY - 70 }); put(you, { x: xy });
+    act.set(Math.min(1300, u > 0 ? xb : 770) + 36, GY - 70, push || t > tb ? 120 : 0, 0, 'on the ball: 50 N', -40, -10);
+    rea.set(xy - 50, GY - 150, push || t > tb ? 120 : 0, 180, 'on you: 50 N', 0, -10);
+  }, D);
+}, { lead: false }],
+['pairs', 'Action-reaction pairs', (m, D) => {
+  const p = panel(0);
+  const tt = m('tramp'), tr = m('run');
+  txt(p, 'Action-reaction pairs', 800, 110, .2, { size: 44 });
+  // left: a trampoline bounce; right: a runner's foot and the ground
+  const L = G(p, { o: 0 }); show(L, tt - .3);
+  path(L, 'M180 640V720M620 640V720', { stroke: '#7d8a86', 'stroke-width': 10 });
+  const bed = path(L, '', { stroke: '#2f3a44', 'stroke-width': 10 });
+  const jumper = phSprite(L, 'you', {}), down = forceArrow(L), up = forceArrow(L);
+  phLabel(L, 'you push down; it pushes you up', { x: 400, y: 790, size: 28 });
+  const R = G(p, { o: 0 }); show(R, tr - .3);
+  phBlock(R, 860, 640, 640, 20, '#8a6f55', { top: 4, ol: 0 });
+  const runner = phPerson(R, { role: 'friend', y: 640 }), back = forceArrow(R), fwd = forceArrow(R);
+  phLabel(R, 'your foot pushes back; the ground pushes you forward', { x: 1180, y: 790, size: 28 });
+  clockRun(t => {
+    const ph = ((t - tt) % 1.6 + 1.6) % 1.6, air = Math.max(0, Math.sin(Math.PI * ph / 1.2)), sag = ph > 1.2 ? Math.sin(Math.PI * (ph - 1.2) / .4) : 0, onBed = ph > 1.2;
+    bed.setAttribute('d', `M180 640Q400 ${640 + 70 * sag} 620 640`); put(jumper, { x: 400, y: 640 + 35 * sag - 260 * air });
+    down.set(470, 600 + 35 * sag, onBed && t > tt ? 90 : 0, 90, 'on the trampoline', 110, 40); up.set(330, 690, onBed && t > tt ? 90 : 0, -90, 'on you', -70, 40);
+    const u = Math.max(0, t - tr), x = 920 + (100 * u) % 520, step = Math.floor(u * 2.5) % 2;
+    put(runner, { x }); if (u > 0) walkTo(runner, x); back.set(x - 10, 660, u > 0 && step ? 80 : 0, 180, 'on the ground', -30, 50); fwd.set(x - 20, 520, u > 0 && step ? 80 : 0, 0, 'on you', 0, 0);
+  }, D);
+}],
+['earth', 'Why Earth doesn’t move', (m, D) => {
+  const p = panel(0);
+  const E = phEarthPolar(p, { x: 520, y: 1180, R: 620 });
+  const you = phSprite(p, 'you', { x: 520, y: 560 }), dn = forceArrow(p), up = forceArrow(p);
+  phLabel(p, '50 kg', { x: 600, y: 470, size: 28 });
+  const ta = m('mass'), tt = m('tiny');
+  const a1 = G(p, { o: 0 }); runs(a1, [['on you: ', COL.chalk], ['a = 500 N ÷ 50 kg = ', COL.chalk], ['10 m/s²', ACC]], { x: 1180, y: 300, size: 34, weight: 700, o: 1 }); show(a1, ta + .6);
+  const a2 = G(p, { o: 0 }); runs(a2, [['on Earth: ', COL.chalk], ['a = 500 N ÷ 6,000,000,000,000,000,000,000,000 kg', COL.chalk]], { x: 1050, y: 380, size: 26, weight: 700, o: 1 });
+  runs(a2, [['≈ ', COL.chalk], ['0.0000000000000000000001 m/s²', ACC]], { x: 1050, y: 425, size: 30, weight: 700, o: 1 }); show(a2, ta + 2);
+  txt(p, 'far too small to notice, but it is there', 1050, 500, tt + .4, { size: 30, fill: COL.dim });
+  clockRun(t => {
+    const ph = ((t - .5) % 1.4 + 1.4) % 1.4, h = Math.max(0, Math.sin(Math.PI * ph / 1.1)), push = ph > 1.1 || ph < .12;
+    put(you, { x: 520, y: 560 - 180 * h });
+    dn.set(560, 530, push ? 100 : 0, 90, 'you push Earth: 500 N', 150, 20); up.set(480, 660, push ? 100 : 0, -90, 'Earth pushes you: 500 N', -170, 40);
+  }, D);
+}, { lead: false }],
+['q4', 'Quick check', (m, D) => {
+  const p = panel(0);
+  ground(p);
+  phBlock(p, 1000, 160, 60, GY - 160, '#7d6a5a', { top: 0, right: 12, ol: 0 });
+  const y = phSprite(p, 'you_point', { x: 900, y: GY });
+  forceArrow(p).set(940, GY - 110, 90, 0, 'you: 30 N', 0, -10); forceArrow(p).set(990, GY - 160, 90, 180, 'wall: ?', 0, -10);
+}, { ask: done => quiz(Q_CARD, [
+  { id: 'c-wall', prompt: ['You push on a wall with 30 newtons. How hard does the wall push back on you?'],
+    build: blanks([{ parts: ['the wall pushes back with ', { box: '30' }, ' newtons'], why: 'Action and reaction are equal in size and opposite in direction.', hint: 'Third law: equal and opposite.' }]) },
+  { id: 'c-jump', prompt: ['When you jump, you push down on Earth and Earth pushes up on you with the same force. Why doesn’t Earth move noticeably?'],
+    build: choice([['its huge mass gives it a tiny acceleration'], ['it pushes back with a smaller force'], ['forces only act on people']], 0,
+      'Same force, enormous mass: a = F ÷ m is far too small to notice.',
+      [null, 'The two forces are equal; the difference is the mass.', 'Earth feels the force too; it just barely accelerates.']) },
+  { id: 'c-pair', prompt: ['A swimmer pushes backward on the pool wall. What pushes the swimmer forward?'],
+    build: choice([['the wall'], ['the swimmer’s own push'], ['nothing pushes the swimmer']], 0,
+      'The wall pushes back on the swimmer: an action-reaction pair.',
+      [null, 'Your own push acts on the wall, not on you. The wall’s push acts on you.', 'Something must push the swimmer to speed her up: the wall does.']) },
+], done) }],
+['wrap4', 'Summary · Third law', (m, D) => {
+  const p = panel(0);
+  txt(p, 'Newton’s third law', 800, 140, .2, { size: 40, fill: COL.dim });
+  [['For every action, there is an equal and opposite reaction.', 'w1'],
+   ['The pair: same size, opposite directions, on two different objects.', 'w2'],
+   ['The same force moves a small mass a lot and a huge mass hardly at all.', 'w3']].forEach(([s, mark], i) => {
+    const g = G(p, { x: -16, y: 290 + i * 130, o: 0 });
+    mk('rect', { x: 144, y: -38, width: 52, height: 52, rx: 6, fill: PH.ref }, g);
+    T(g, String(i + 1), { x: 170, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
+    T(g, s, { x: 230, size: 36, weight: 600 });
+    tw(g, { o: 1, x: 0 }, m(mark), .6);
+  });
+  txt(p, 'Next: the chapter practice.', 800, 760, m('end'), { size: 32, fill: COL.dim, weight: 500 });
+}],
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
 
 boot();
