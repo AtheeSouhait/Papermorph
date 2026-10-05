@@ -289,6 +289,121 @@ const BEATS = [
   });
   txt(p, 'Next: Newton’s second law.', 800, 760, m('end'), { size: 32, fill: COL.dim, weight: 500 });
 }],
+/* ---------- part 3: Newton's second law ---------- */
+['part3', 'Part 3 · The second law', (m, D) => {
+  const p = panel(0);
+  ground(p);
+  const cart = phSprite(p, 'cart', { y: GY }), you = phSprite(p, 'you_point', { y: GY }), f = forceArrow(p), a = path(p, '', { stroke: ACC, 'stroke-width': 8 });
+  clockRun(t => { const x = 300 + 18 * t * t; put(cart, { x: x + 110 }); put(you, { x }); f.set(x + 60, GY - 110, 110, 0, 'force'); arrowAt(a, x + 60, GY - 160, 90, 0); }, D);
+  const g = G(p, { o: 0, y: 24 });
+  T(g, 'Chapter 10 · Force and Newton’s laws', { x: 800, y: 130, size: 28, fill: COL.dim, anchor: 'middle' });
+  phLabel(g, 'The Second Law', { x: 800, y: 250, size: 110, weight: 600 });
+  tw(g, { o: 1, y: 0 }, .2, 1.1, out);
+  txt(p, 'Part 3 · Force, mass, and acceleration', 800, 320, m('q'), { size: 36, fill: COL.dim });
+}],
+['law2', 'a = F ÷ m', (m, D) => {
+  const p = panel(0);
+  const y = 160;
+  show(T(p, 'acceleration =', { x: 600, y: y + 14, size: 50, weight: 700, anchor: 'end', fill: ACC, o: 0 }), m('law'));
+  show(wfrac(p, 'net force', 'mass', 740, y, { size: 46, ct: FORCE }), m('law', .3));
+  const re = runs(p, [['net force', FORCE], [' = mass × ', COL.chalk], ['acceleration', ACC]], { x: 1180, y: y + 14, size: 40, weight: 700 });
+  show(re, m('rearr'));
+  // Same 2 kg crate, 4 N and 8 N: double the force, double the acceleration (2 and 4 m/s²). 50 px per meter.
+  const L = [[400, 4, 2], [640, 8, 4]], t0 = m('more', -.4);
+  const rows = L.map(([yy, F, a]) => {
+    phBlock(p, 100, yy, 1400, 10, PH.walk, { top: 0, ol: 0 });
+    const c = crate(p, { y: yy, w: 110, h: 90, label: '2 kg' }), f = forceArrow(p), aa = forceArrow(p, { color: ACC, w: 8 });
+    return { c, f, aa, F, a, yy };
+  });
+  clockRun(t => rows.forEach(({ c, f, aa, F, a, yy }) => {
+    const u = Math.min(Math.max(0, t - t0), Math.sqrt(1100 / 100)), x = 200 + 50 * a * u * u / 2;   // stop when the faster crate reaches the end
+    put(c, { x }); f.set(x + 56, yy - 45, F * 22, 0, `${F} N`); aa.set(x - 55, yy - 120, a * 30, 0, `${a} m/s²`, 0, 0);
+  }), D);
+  txt(p, 'double the force → double the acceleration', 800, 820, m('more', .8), { size: 34 });
+}, { lead: false }],
+['cart', 'Same force, different mass', (m, D) => {
+  const p = panel(0);
+  const LA = 400, LB = 720, t0 = m('cart', -.6);
+  [LA, LB].forEach(y => phBlock(p, 0, y, 1600, 10, PH.walk, { top: 0, ol: 0 }));
+  const cart = phSprite(p, 'cart', { y: LA }), y1 = phSprite(p, 'you_point', { y: LA }), car = phCar(p, { y: LB }), y2 = phSprite(p, 'friend_point', { y: LB });
+  const f1 = forceArrow(p), f2 = forceArrow(p), a1 = forceArrow(p, { color: ACC, w: 8 }), a2 = forceArrow(p, { color: ACC, w: 8 });
+  phLabel(p, 'cart: 20 kg', { x: 120, y: LA - 190, size: 30, anchor: 'start' }); phLabel(p, 'car: 1,000 kg', { x: 120, y: LB - 190, size: 30, anchor: 'start' });
+  const why = G(p, { o: 0 });
+  phLabel(why, 'a = 200 N ÷ 20 kg = 10 m/s²', { x: 1150, y: LA - 190, size: 30, fill: ACC }); phLabel(why, 'a = 200 N ÷ 1,000 kg = 0.2 m/s²', { x: 1150, y: LB - 190, size: 30, fill: ACC });
+  show(why, m('why'));
+  clockRun(t => {
+    const u = Math.max(0, t - t0), xa = 220 + Math.min(1100, 10 * 30 * u * u / 2), xb = 220 + .2 * 30 * u * u / 2;
+    put(y1, { x: xa }); put(cart, { x: xa + 110 }); f1.set(xa + 60, LA - 110, 120, 0, '200 N'); a1.set(xa + 60, LA - 150, 100, 0, '');
+    put(y2, { x: xb }); put(car, { x: xb + 170 }); phRoll(car, xb); f2.set(xb + 40, LB - 120, 120, 0, '200 N'); a2.set(xb + 40, LB - 160, 2, 0, '');
+  }, D);
+}],
+['calc', 'Net force = mass × acceleration', (m, D) => {
+  const p = panel(0);
+  phBlock(p, 0, 640, 1600, 10, PH.walk, { top: 0, ol: 0 });
+  const car = phCar(p, { y: 640 }), f = forceArrow(p, { w: 12, size: 32 }), aa = forceArrow(p, { color: ACC, w: 8 });
+  const ml = phLabel(p, '2,000 kg', { size: 30 });
+  const y = 180;
+  show(runs(p, [['net force', FORCE], [' = mass × ', COL.chalk], ['acceleration', ACC]], { x: 800, y, size: 46, weight: 700 }), m('f'));
+  show(runs(p, [['= 2,000 kg × 3 ', COL.chalk], ['m/s²', ACC]], { x: 800, y: y + 70, size: 46, weight: 700 }), m('f', 1.6));
+  const ans = T(p, '= 6,000 N', { x: 800, y: y + 150, size: 64, weight: 700, fill: FORCE, anchor: 'middle', o: 0 });
+  pop(put(ans, { s: .6 }), m('ans'));
+  clockRun(t => {
+    const u = Math.max(0, t - m('ex')), x = 300 + Math.min(700, 18 * u * u);
+    put(car, { x }); phRoll(car, x); put(ml, { x, y: 500 });
+    aa.set(x - 80, 470, 90, 0, '3 m/s²'); f.set(x + 125, 590, t > m('ans') ? 190 : 0, 0, '6,000 N', 0, -30);
+  }, D);
+}, { lead: false }],
+['wind', 'With and against the wind', (m, D) => {
+  const p = panel(0);
+  const tw1 = m('with'), ta = m('against');
+  // Follow camera on the bike. Phase 1 (with the wind): 4 → 8 m/s; phase 2 (against): 8 → 2 m/s. 30 px/s = 1 m/s.
+  const v = t => t < ta - .3 ? 4 + 4 * ramp(t, tw1, tw1 + 5) : 8 - 6 * ramp(t, ta, ta + 4.5);
+  const xAt = t => { let x = 0; for (let u = 0; u < t; u += .05) x += v(u) * 30 * .05; return x; };   // deterministic sum over fixed steps
+  const cam = camera(p, D, { x: 800, y: 560 });
+  cam.cut({ x: t => 300 + xAt(t) + 120 }, 0);
+  const road = phRoad(cam), bike = G(road.vehicles), bk = phSprite(bike, 'bike', {}), rd = phSprite(bike, 'rider', { x: -4, y: -40 });
+  const vv = path(road.front, '', { stroke: VEL, 'stroke-width': 8 }), wf = forceArrow(road.front);
+  const vl = G(p), vlab = phLabel(vl, '', { size: 30, fill: VEL });
+  const streaks = G(p, { o: .5 }), sl = Array.from({ length: 9 }, (_, i) => path(streaks, '', { stroke: COL.chalk, 'stroke-width': 4 }));
+  const tag = phLabel(p, '', { x: 800, y: 120, size: 40 });
+  clockRun(t => {
+    const x = 300 + xAt(t), sp = v(t), dir = t < ta - .3 ? 1 : -1;
+    put(bike, { x, y: ROAD.near });
+    arrowAt(vv, x - 50, ROAD.near - 190, sp * 14, 0); wf.set(dir > 0 ? x - 160 : x + 160, ROAD.near - 100, t > tw1 - .3 ? 110 : 0, dir > 0 ? 0 : 180, 'wind', 0, -10);
+    phText(vlab, `velocity: ${sp.toFixed(1)} m/s →`); cam.track(vlab, x, ROAD.near - 220, t);
+    phText(tag, t < tw1 ? '' : dir > 0 ? 'wind at your back: net force forward → speed up' : 'against the wind: net force backward → slow down');
+    sl.forEach((e, i) => { const yy = 200 + 70 * i, xx = ((i * 337 + 900 * t * dir) % 1800 + 1800) % 1800 - 100; e.setAttribute('d', `M${xx} ${yy}h${70 * dir}`); });
+  }, D);
+}],
+['q3', 'Quick check', (m, D) => {
+  const p = panel(0);
+  phBlock(p, 0, 440, 1600, 10, PH.walk, { top: 0, ol: 0 });
+  const c = crate(p, { x: 600, y: 440, label: '2 kg' }), f = forceArrow(p, { w: 11 }), a = forceArrow(p, { color: ACC, w: 8 });
+  f.set(680, 380, 200, 0, '10 N'); a.set(520, 270, 110, 0, '? m/s²');
+}, { ask: done => quiz(Q_CARD, [
+  { id: 'c-a', prompt: ['A 10 newton net force pushes a 2 kilogram box. What is its ', h('b', '', 'acceleration'), '?'],
+    build: blanks([{ parts: ['acceleration = 10 ÷ 2 = ', { box: '5' }, ' meters per second squared'], why: 'acceleration = net force ÷ mass = 10 ÷ 2 = 5.', hint: 'acceleration = net force ÷ mass.' }]) },
+  { id: 'c-fma', prompt: ['A 50 kilogram skater speeds up at 4 meters per second squared. What net force acts on her?'],
+    build: blanks([{ parts: ['net force = 50 × 4 = ', { box: '200' }, ' newtons'], why: 'net force = mass × acceleration = 50 × 4 = 200.', hint: 'net force = mass × acceleration.' }]) },
+  { id: 'c-more', prompt: ['The same force pushes a bike and a truck. Which accelerates more?'],
+    build: choice([['the bike'], ['the truck'], ['both the same']], 0,
+      'Less mass, more acceleration: a = F ÷ m.',
+      [null, 'The truck has far more mass, so the same force gives it less acceleration.', 'Same force, different masses: different accelerations.']) },
+], done) }],
+['wrap3', 'Summary · Second law', (m, D) => {
+  const p = panel(0);
+  txt(p, 'Newton’s second law', 800, 140, .2, { size: 40, fill: COL.dim });
+  [['acceleration = net force ÷ mass', 'w1'],
+   ['net force = mass × acceleration (newtons = kg × m/s²)', 'w2'],
+   ['Net force with the motion: speed up; against it: slow down.', 'w3']].forEach(([s, mark], i) => {
+    const g = G(p, { x: -16, y: 290 + i * 130, o: 0 });
+    mk('rect', { x: 144, y: -38, width: 52, height: 52, rx: 6, fill: PH.ref }, g);
+    T(g, String(i + 1), { x: 170, y: -1, size: 30, fill: COL.board, weight: 700, anchor: 'middle' });
+    T(g, s, { x: 230, size: 36, weight: 600 });
+    tw(g, { o: 1, x: 0 }, m(mark), .6);
+  });
+  txt(p, 'Next: Newton’s third law.', 800, 760, m('end'), { size: 32, fill: COL.dim, weight: 500 });
+}],
 /*BEATS*/
 ].map(([id, title, run, extra]) => ({ id, title, run, ...extra }));
 
