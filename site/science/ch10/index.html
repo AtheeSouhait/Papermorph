@@ -79,7 +79,7 @@ const PICS = {
   'p-bal': g => { phBlock(g, 260, 800, 1000, 12, PH.walk, { top: 0, ol: 0 }); [[460, 3, 3], [1060, 5, 2]].forEach(([x, a, b]) => { crate(g, { x, y: 800, w: 160, h: 130 }); forceArrow(g, { w: 12 }).set(x + 84, 730, a * 36, 0, ''); forceArrow(g, { w: 12 }).set(x - 84, 730, b * 36, 180, ''); }); },
   'p-first': g => { phBlock(g, 300, 800, 900, 30, '#cfe8f3', { top: 6, ol: 0 }); const k = G(g, { x: 600, y: 800 }); mk('rect', { x: -50, y: -40, width: 100, height: 40, rx: 12, fill: '#22282a' }, k); arrowAt(path(g, '', { stroke: VEL, 'stroke-width': 10 }), 660, 780, 130, 0, 22); crate(g, { x: 1000, y: 800, w: 150, h: 120 }); },
   'p-unit': g => { phBlock(g, 400, 800, 800, 12, PH.walk, { top: 0, ol: 0 }); crate(g, { x: 800, y: 800, w: 170, h: 140, label: '1 kg' }); forceArrow(g, { w: 14, size: 34 }).set(530, 730, 180, 0, '1 N'); forceArrow(g, { color: ACC, w: 12, size: 32 }).set(740, 620, 160, 0, '?'); },
-  'p-net3': g => { phBlock(g, 300, 800, 900, 12, PH.walk, { top: 0, ol: 0 }); crate(g, { x: 700, y: 800, w: 200, h: 170 }); forceArrow(g, { w: 14, size: 34 }).set(806, 690, 6 * 36, 0, '6 N'); forceArrow(g, { w: 14, size: 34 }).set(806, 760, 4 * 36, 0, '4 N', 0, 56); forceArrow(g, { w: 14, size: 34 }).set(594, 725, 3 * 36, 180, '3 N'); },
+  'p-net3': g => { phBlock(g, 300, 800, 900, 12, PH.walk, { top: 0, ol: 0 }); crate(g, { x: 700, y: 800, w: 200, h: 170 }); forceArrow(g, { w: 14, size: 34 }).set(806, 690, 6 * 36, 0, '6 N'); forceArrow(g, { w: 14, size: 34 }).set(806, 760, 4 * 36, 0, '4 N', 'below'); forceArrow(g, { w: 14, size: 34 }).set(594, 725, 3 * 36, 180, '3 N'); },
   'p-second': g => { phBlock(g, 400, 800, 800, 12, PH.walk, { top: 0, ol: 0 }); crate(g, { x: 800, y: 800, w: 170, h: 140, label: 'mass' }); forceArrow(g, { w: 14, size: 32 }).set(470, 730, 240, 0, 'net force'); forceArrow(g, { color: ACC, w: 12, size: 32 }).set(720, 620, 200, 0, 'acceleration'); },
   'p-car': g => { mk('rect', { x: 200, y: 820, width: 1000, height: 40, fill: '#3a4541' }, g); phCar(g, { x: 700, y: 820, s: 2 }); phLabel(g, '2,000 kg', { x: 700, y: 650, size: 38 }); forceArrow(g, { color: ACC, w: 12, size: 34 }).set(600, 600, 200, 0, '3 m/s²'); },
   'p-third': g => { phBlock(g, 300, 800, 900, 12, PH.walk, { top: 0, ol: 0 }); crate(g, { x: 660, y: 800, w: 140, h: 120 }); crate(g, { x: 800, y: 800, w: 140, h: 120 }); forceArrow(g, { w: 12 }).set(740, 700, 120, 0, ''); forceArrow(g, { w: 12 }).set(720, 700, 120, 180, ''); },
@@ -104,7 +104,7 @@ const BEATS = [
   clockRun(t => {
     put(a, { x: X(t) }); a.stride('push', (X(t) - x0) / S);
     const [hx, hy] = a.hand('F'); put(c, { x: hx + W / 2 - 6 });
-    f.set(hx, hy - 4, t < tp ? 190 : 0, 0, 'push', 0, 62);
+    f.set(hx, hy - 4, t < tp ? 190 : 0, 0, 'push', 'below');
   }, D);
   thought(p, [150, 96, 910, 256], 430, ['What makes things start, stop,', 'speed up, or turn?'], m('sub'));   // your thought, right above you
 }, { lead: false }],
@@ -154,7 +154,7 @@ const BEATS = [
     cs._in.setAttribute('transform', crushed ? '' : `scale(${sx.toFixed(3)},${sy.toFixed(3)})`);
     put(cg, { y: 450 + h / 2 });                                 // its centre stays put while it flattens
     const on = t > ts + .4 && t < ts + 2.3;
-    sq1.set(640, 450 - h / 2 - 150, on ? 130 : 0, 90, 'squeeze', -110, 80); sq2.set(640, 450 + h / 2 + 150, on ? 130 : 0, -90, '');
+    sq1.set(640, 450 - h / 2 - 150, on ? 130 : 0, 90, 'squeeze', 'left'); sq2.set(640, 450 + h / 2 + 150, on ? 130 : 0, -90, '');
   }, D);
 }],
 ['net', 'Net force', (m, D) => {
@@ -209,7 +209,7 @@ const BEATS = [
     const on = t > .3;
     FL.set(360 + d + 60, 300, on ? 10 * U : 0, 180, '10 N'); FR.set(1240 + d - 60, 300, on ? pull * U : 0, 0, `${Math.round(pull)} N`);
     phText(tag, t < tb ? '' : t < tu ? 'balanced' : 'unbalanced'); put(tag, { x: mx }); put(zero, { x: mx });
-    NF.set(mx - 75, 715, t > tu + .9 ? 150 : 0, 0, 'net force 5 N', 0, -40);   // the label clear above the arrow head
+    NF.set(mx - 75, 715, t > tu + .9 ? 150 : 0, 0, 'net force 5 N');
   }, D);
 }, { lead: false }],
 ['newton', 'The newton', (m, D) => {
@@ -235,8 +235,8 @@ const BEATS = [
     const [hx, hy] = a.hand('F'), x = hx + 30, yh = hy + 4;
     const y = t < tf ? top : t < ta ? top + (yh - top) * ((t - tf) / .6) ** 2 : yh;   // falls, then rests in your hand
     put(ap, { x, y, o: t < tf ? 0 : 1 });
-    dn.set(x, y + 6, t > tf ? 130 : 0, 90, t > ta ? 'gravity 1 N' : '', 120, 80);
-    up.set(x, y - 100, t > ta ? 130 : 0, -90, 'hand 1 N', 100, 30);
+    dn.set(x, y + 6, t > tf ? 130 : 0, 90, t > ta ? 'gravity 1 N' : '', 'right');
+    up.set(x, y - 100, t > ta ? 130 : 0, -90, 'hand 1 N', 'right');
   }, D);
   // the definition
   const X0 = 2360, cr = crate(w, { y: Y, w: 240, h: 210, label: '1 kg' }), fp = forceArrow(w, { w: 16, size: 42 }), ac = path(w, '', { stroke: ACC, 'stroke-width': 12 });
@@ -299,14 +299,14 @@ const BEATS = [
   // the words ride above the ball
   const say = (lines, t0, t1) => { const g = G(w, { o: 0 }); lines.forEach((s, i) => phLabel(g, s, { y: i * 52, size: i ? 38 : 44, weight: i ? 600 : 700 })); show(g, t0); if (t1) hide(g, t1, .3); return g; };
   const s1 = say(['at rest:', 'it stays at rest'], m('stay'), tk - .4), s2 = say(['rolling, it would keep rolling…'], m('roll'), m('stop') - .2),
-    s3 = say(['friction from the grass and air', 'slows it and stops it'], m('stop'));
+    s3 = say(['friction from the grass and air', 'slows it and stops it'], m('stop'), ts - .3);   // gone before deep space fades in
   const bx = t => { const u = Math.min(Math.max(0, t - tk), T0); return X0 + V0 * u - A * u * u / 2; };
   clockRun(t => {
     const x = bx(t), u = t - tk, v = u > 0 && u < T0 ? V0 - A * u : 0;    // at rest until the kick
     put(ball, { x }); put(ball._spin, { r: (x - X0) / R * 180 / Math.PI });
     arrowAt(vA, x + R + 8, Y - R, v * .3, 0, 24);
     kick.set(X0 - R - 150, Y - R + 20, u > -.1 && u < .15 ? 140 : 0, 0, 'kick');           // the kick force only during contact
-    fr.set(x - R - 8, Y - 18, v > 0 && u > .3 ? 100 : 0, 180, 'friction', -20, -10);         // friction only while it rolls
+    fr.set(x - R - 8, Y - 18, v > 0 && u > .3 ? 100 : 0, 180, 'friction');         // friction only while it rolls
     kid.show(u < -.55 || u > .7 ? 'stand' : 'kick', u < -.12 ? 0 : u < .12 ? 1 : 2);
     [s1, s2, s3].forEach(g => put(g, { x: Math.min(x, 1230), y: Y - 2 * R - 130 }));   // kept inside the frame
   }, D);
@@ -387,7 +387,9 @@ const BEATS = [
     const a = xw(t), b = xr(t), before = t < tHit;
     put(wb, { x: a, y: 450 }); put(rb, { x: b, y: 450 });
     arrowAt(vw, a + R + 8, 400, before ? 100 : 0, 0, 22); arrowAt(vr, b + R + 8, 400, before ? 0 : 100, 0, 22);
-    put(lw, { x: a, y: 540 }); phText(lw, before ? P : '0'); put(lr, { x: b, y: 540 }); phText(lr, before ? '0' : P);
+    // the long label reaches away from the other ball, so it never runs into the neighbour's 0
+    if (lw._b !== before) { lw._b = before; lw.setAttribute('text-anchor', before ? 'end' : 'middle'); lr.setAttribute('text-anchor', before ? 'middle' : 'start'); }
+    put(lw, { x: before ? a + 30 : a, y: 540 }); phText(lw, before ? P : '0'); put(lr, { x: before ? b : b - 30, y: 540 }); phText(lr, before ? '0' : P);
   }, D);
 }, { lead: false }],
 ['q2', 'Quick check', (m, D) => {
@@ -395,7 +397,7 @@ const BEATS = [
   ground(p, Y);
   const ball = phBall(p, R, { y: Y - R }), vA = path(p, '', { stroke: VEL, 'stroke-width': 12 }), fr = forceArrow(p, { w: 14, size: 32 });
   clockRun(t => { const tt = Math.min(t, 3.6), x = 300 + 300 * tt - 42 * tt * tt, v = Math.max(0, 300 - 84 * t);
-    put(ball, { x }); put(ball._spin, { r: x / R * 180 / Math.PI }); arrowAt(vA, x + R + 8, Y - R, v * .35, 0, 24); fr.set(x - R - 8, Y - 18, v > 0 ? 90 : 0, 180, 'friction', -20, -10); }, D);
+    put(ball, { x }); put(ball._spin, { r: x / R * 180 / Math.PI }); arrowAt(vA, x + R + 8, Y - R, v * .35, 0, 24); fr.set(x - R - 8, Y - 18, v > 0 ? 90 : 0, 180, 'friction'); }, D);
 }, { ask: done => quiz(Q_CARD, [
   { id: 'c-inertia', prompt: ['A bowling ball and a soccer ball are the same size. Which has more ', h('b', '', 'inertia'), '?'],
     build: choice([['the bowling ball'], ['the soccer ball'], ['they have the same inertia']], 0,
@@ -424,7 +426,7 @@ const BEATS = [
   const a = phActor(w, 'you', { y: Y, s: S, anim: 'push' }), c = phSprite(w, 'cart', { y: Y, s: 2.5 }), f = forceArrow(w, { w: 14, size: 36 }), ac = forceArrow(w, { color: ACC, w: 12, size: 34 });
   clockRun(t => {
     put(a, { x: 300 + d(t) }); a.stride('push', d(t) / S); const [hx, hy] = a.hand('F'); put(c, { x: hx + CW / 2 - 6 });
-    f.set(hx - 6, hy - 6, 200, 0, 'force', 0, 2); ac.set(hx + 40, hy - 120, 160, 0, 'acceleration', 0, 2);
+    f.set(hx - 6, hy - 6, 200, 0, 'force'); ac.set(hx + 40, hy - 120, 160, 0, 'acceleration');
   }, D);
   opener(p, 1180, 470, 'Part 3', 'The Second Law');
   thought(p, [60, 70, 860, 230], 330, ['How much does a force change', 'an object’s motion?'], m('q'));
@@ -473,11 +475,11 @@ const BEATS = [
     const u = t - t0, on = u > 0 && u < tc, d1 = dx(1000, t), d2 = dx(20, t);
     put(A, { x: 260 + Math.min(d1, 1000 * tc * tc / 2) }); if (on) A.stride('push', d1 / S); else A.show(u > 0 ? 'stand' : 'push', 0);
     const [ha, hya] = A.hand('F'), xa = xa0 + d1; put(cart, { x: xa });
-    f1.set(ha - 6, hya - 6, on ? 180 : 0, 0, '200 N', 0, -4); arrowAt(v1, xa + 140, LA - 220, u > tc ? 110 : 0, 0, 22);
+    f1.set(ha - 6, hya - 6, on ? 180 : 0, 0, '200 N'); arrowAt(v1, xa + 140, LA - 220, u > tc ? 110 : 0, 0, 22);
     put(m1, { x: xa, y: LA + 50 });   // each mass tag under its object
     put(B, { x: 260 + Math.min(d2, 20 * tc * tc / 2) }); if (on) B.stride('push', d2 / S); else B.show(u > 0 ? 'stand' : 'push', 0);
     const [hb, hyb] = B.hand('F'), xb = xb0 + d2; put(car, { x: xb }); phRoll(car, d2 / 1.6);
-    f2.set(hb - 6, hyb - 40, on ? 180 : 0, 0, '200 N', 0, -4); put(m2, { x: xb, y: LB + 54 });
+    f2.set(hb - 6, hyb - 40, on ? 180 : 0, 0, '200 N'); put(m2, { x: xb, y: LB + 54 });
   }, D);
 }, { lead: false }],
 ['calc', 'Net force = mass × acceleration', (m, D) => {
@@ -510,9 +512,9 @@ const BEATS = [
   clockRun(t => {
     const d = xAt(t), x = 300 + d, sp = v(t), dir = t < ta - .3 ? 1 : -1, windy = t > tw1 - .3;
     put(bike, { x, y: ROAD.near }); bike.ride(d / 2);
-    vv.set(x - 80, ROAD.near - 360, sp * 30, 0, `velocity ${sp.toFixed(1)} m/s`, 0, 2);
-    wf.set(dir > 0 ? x - 330 : x + 330, ROAD.near - 200, windy ? 140 : 0, dir > 0 ? 0 : 180, 'wind', 0, 2);
-    nf.set(dir > 0 ? x - 60 : x + 100, ROAD.near + 60, windy ? 160 : 0, dir > 0 ? 0 : 180, 'net force', 0, 66);
+    vv.set(x - 80, ROAD.near - 360, sp * 30, 0, `velocity ${sp.toFixed(1)} m/s`);
+    wf.set(dir > 0 ? x - 330 : x + 330, ROAD.near - 200, windy ? 140 : 0, dir > 0 ? 0 : 180, 'wind');
+    nf.set(dir > 0 ? x - 60 : x + 100, ROAD.near + 60, windy ? 160 : 0, dir > 0 ? 0 : 180, 'net force', 'below');
     phText(tag, !windy ? '' : dir > 0 ? 'same way → speed up' : 'opposite → slow down');
     sl.forEach((e, i) => { const yy = 200 + 70 * i, xx = ((i * 337 + 900 * t * dir) % 1800 + 1800) % 1800 - 100; e.setAttribute('d', `M${xx} ${yy}h${70 * dir}`); });
   }, D);
@@ -579,8 +581,8 @@ const BEATS = [
     let bx, by;
     if (ts < tb) { const [hx, hy] = you.hand('F'); bx = hx + 30; by = hy; } else { bx = rx + 30 + VB * u; by = ry; }   // in the hands until release, then straight on
     put(ball, { x: bx, y: by });
-    act.set(bx + R + 6, by, contact ? 120 : 0, 0, replay ? '50 N' : 'on the ball', 0, -6);
-    rea.set(640 - VY * u - 60, Y - 250, contact ? 120 : 0, 180, replay ? '50 N' : 'on you', 0, -6);
+    act.set(bx + R + 6, by, contact ? 120 : 0, 0, replay ? '50 N' : 'on the ball');
+    rea.set(640 - VY * u - 60, Y - 250, contact ? 120 : 0, 180, replay ? '50 N' : 'on you');
     arrowAt(vb, bx + R + 8, by - 60, u > 0 ? 110 : 0, 0, 22); arrowAt(vy, 640 - VY * u - 40, Y - 330, u > 0 ? 44 : 0, 180, 16);   // velocities after release
   }, D);
 }, { lead: false }],
@@ -656,7 +658,7 @@ const BEATS = [
   };
   clockRun(t => {
     const j = jump(t); put(you, { y: j.y }); you.show(j.pose);
-    dn.set(870, G0 - 20, j.push ? 120 : 0, 90, 'you push Earth: 500 N', 150, 80); up.set(730, G0 + 120, j.push ? 120 : 0, -90, 'Earth pushes you: 500 N', -170, 30);
+    dn.set(870, G0 - 20, j.push ? 120 : 0, 90, 'you push Earth: 500 N', 'right'); up.set(730, G0 + 120, j.push ? 120 : 0, -90, 'Earth pushes you: 500 N', 'left');
   }, D);
 }, { lead: false }],
 ['q4', 'Quick check', (m, D) => {

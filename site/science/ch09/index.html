@@ -217,7 +217,7 @@ const BEATS = [
   const road = phRoad(cam);
   const you = phPerson(road.side, { x: 760, y: ROAD.side, o: 0 });
   show(you, m('stand'));
-  show(phLabel(road.front, 'you', { x: 760, y: 336, fill: PH.you, o: 0 }), m('stand'));
+  show(phLabel(road.front, 'you', { x: 760, y: 236, fill: PH.you, o: 0 }), m('stand'));   // above the pin: the truck's label passes below
   const truck = phTruck(road.vehicles, { y: ROAD.far });
   const tl = phLabel(road.front, `truck: ${speedStr(V)}`, { y: 350, fill: PH.truck, o: 0 });
   fromTag(p, 'you, by the road', m('speed'));
@@ -253,7 +253,7 @@ const BEATS = [
     const x = xw(t), camV = t < r0 ? 0 : V, rel = t < tc ? 0 : V - camV;
     put(truck, { x }); put(car, { x: x + 10 });
     phRoll(truck, x + 330); phRoll(car, x + 330);
-    phText(fl, `friend: ${speedStr(-camV)}`); cam.track(fl, FR, 336, t);
+    phText(fl, `friend: ${speedStr(-camV)}`); cam.track(fl, FR, 236, t);
     phText(tl, `truck: ${speedStr(rel)}`); cam.track(tl, x + 10, 350, t);
     phText(cl, `your car: ${speedStr(rel)}`); cam.track(cl, x + 10, ROAD.bot + 56, t);
   }, D);
@@ -478,7 +478,7 @@ const BEATS = [
   path(tot, `M${xm(0)} ${LA + 84}V${LA + 100}H${xm(300)}V${LA + 84}`, { stroke: DIST, 'stroke-width': 4 });
   T(tot, 'total distance: 300 m', { x: xm(150), y: LA + 134, size: 30, weight: 700, fill: DIST, anchor: 'middle' });
   show(tot, m('total', .8));
-  txt(p, 'total time: 30 s', 1460, 320, m('total', 1.6), { size: 28, fill: TIME });
+  txt(p, 'total time: 30 s', 1400, 200, m('total', 1.6), { size: 28, fill: TIME, anchor: 'end' });   // beside the clock, clear of the car's speed label
   const y = 100;
   show(T(p, 'average speed =', { x: 560, y: y + 14, size: 44, weight: 700, anchor: 'end', o: 0 }), m('avg'));
   show(wfrac(p, 'total distance', 'total time', 730, y, { size: 38, ct: DIST, cb: TIME }), m('avg', .4));
@@ -832,7 +832,7 @@ const BEATS = [
     const ia = Math.atan2(cy - y, cx - x) * 180 / Math.PI;      // toward the centre of the turn
     arrowAt(aa, x, y, onArc ? 120 : 0, ia); arrowAt(feel, x, y, onArc && t > m('feel') ? 110 : 0, ia + 180, 16);
     cam.track(fl, x - 260 * Math.cos(ia * Math.PI / 180), y - 260 * Math.sin(ia * Math.PI / 180) + 30, t);
-    const on = onArc && t > tf ? 1 : 0; put(fg, { o: on }); put(ugh, { x: x + 60, y: y - 70, o: on, s: on });
+    const on = onArc && t > tf ? 1 : 0; put(fg, { o: on }); put(ugh, { x: x - 110 * Math.cos(r), y: y - 110 * Math.sin(r) + 12, o: on, s: on });   // behind the car, clear of all three arrows
   }, D);
 }],
 ['q4', 'Quick check', (m, D) => {

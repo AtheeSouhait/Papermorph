@@ -46,24 +46,46 @@ function arrowAt(el, x, y, len, a, head = 18) {
 }
 const ACC = '#ee6fd0';                           // acceleration: magenta (velocity stays yellow)
 const FORCE = '#ff7a45', NETF = COL.chalk;      // forces: orange arrows; the net force: a thick white arrow
-// A labelled force arrow: f.set(x, y, len, angle, text, dx, dy) draws it from (x, y); the label sits above its middle
-// (shifted by dx, dy). len 0 hides it.
+// Where a label goes for the arrow from (x, y), len long at angle ang: the baseline point of a middle-anchored label
+// whose ink box clears the shaft (and the head, when the label reaches it) by 12 px at any angle. side picks the
+// shaft's 'above' / 'below' / 'left' / 'right' side (default: above, or right of a near-vertical arrow), the side a
+// direction [dx, dy] points to, or 'tip' to put it just past the head.
+const LABW = new Map();
+function arrowLabelAt(x, y, len, ang, str, size, w, side) {
+  const key = size + str; let tw = LABW.get(key);
+  if (tw === undefined) { ctx2d.font = `700 ${size}px ${UI}`; LABW.set(key, tw = ctx2d.measureText(str).width / 2); }
+  const r = ang * Math.PI / 180, c = Math.cos(r), s = Math.sin(r), th = .44 * size, head = 12 + w;
+  let bx, by, nx, ny, clear;
+  if (side === 'tip') { bx = x + len * c; by = y + len * s; nx = c; ny = s; clear = 12; }
+  else {
+    const [px, py] = Array.isArray(side) ? side : { above: [0, -1], below: [0, 1], left: [-1, 0], right: [1, 0] }[side] || (Math.abs(c) > .3 ? [0, -1] : [1, 0]);
+    const m = Math.max(0, len - head) / 2;   // beside the middle of the shaft, not counting the head
+    bx = x + m * c; by = y + m * s; nx = s; ny = -c;
+    if (nx * px + ny * py < 0) { nx = -nx; ny = -ny; }
+    const along = Math.abs(c) * tw + Math.abs(s) * th;   // the label's half-extent along the shaft
+    clear = 12 + (m + along + 12 > len - head ? head * .6 : w / 2);
+  }
+  const k = clear + Math.abs(nx) * tw + Math.abs(ny) * th;
+  return [bx + nx * k, by + ny * k + .28 * size];   // ink centre to baseline
+}
+// A labelled force arrow: f.set(x, y, len, angle, text, side, dx, dy) draws it from (x, y) with its label beside the
+// shaft (see arrowLabelAt for side), nudged by dx, dy. len 0 hides it.
 function forceArrow(p, { color = FORCE, w = 9, size = 28 } = {}) {
   const g = G(p), a = path(g, '', { stroke: color, 'stroke-width': w }), lab = phLabel(g, '', { size, fill: color });
   return Object.assign(g, {
-    set(x, y, len, ang = 0, text = '', dx = 0, dy = 0) {
-      const r = ang * Math.PI / 180;
+    set(x, y, len, ang = 0, text = '', side, dx = 0, dy = 0) {
       arrowAt(a, x, y, len, ang, 12 + w); phText(lab, len > 1 ? text : '');
-      put(lab, { x: x + len / 2 * Math.cos(r) + dx, y: y + len / 2 * Math.sin(r) - 20 + dy });
+      const [lx, ly] = arrowLabelAt(x, y, len, ang, text, size, w, side); put(lab, { x: lx + dx, y: ly + dy });   // every frame, so replays match
     },
   });
 }
-// A crate (centred on x, sitting on y); returns the group.
-function crate(p, { x = 0, y = 0, w = 150, h = 130, label = '' } = {}) {
+// A crate (centred on x, sitting on y); returns the group. The label's baseline sits at labelY (from the bottom; default
+// the middle), e.g. higher up when a weight arrow starts at the centre.
+function crate(p, { x = 0, y = 0, w = 150, h = 130, label = '', labelY = -h / 2 + 10 } = {}) {
   const g = G(p, { x, y });
   phBlock(g, -w / 2, -h, w, h, '#a87a4f', { top: 8, right: 14, ol: 0 });
   path(g, `M${-w / 2 + 10} ${-h + 18}L${w / 2 - 24} -10M${-w / 2 + 10} -10L${w / 2 - 24} ${-h + 18}`, { stroke: '#7d5737', 'stroke-width': 8 });
-  if (label) phLabel(g, label, { y: -h / 2 + 10, size: 30 });
+  if (label) phLabel(g, label, { y: labelY, size: 30 });
   return g;
 }
 
