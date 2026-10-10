@@ -162,6 +162,11 @@ main#contents { padding-bottom: 80px; }
 .stagger .top { animation: rise .6s var(--ease) backwards; }
 .stagger .unit h2, .stagger .ch { animation: rise .6s var(--ease) backwards; animation-delay: calc(min(var(--i), 14) * 32ms + 80ms); }
 
+.back-shelf { color: var(--dim); font: 13px var(--ui); text-decoration: none; white-space: nowrap; }
+.back-shelf:hover { color: var(--chalk); }
+.cover-back { position: absolute; top: 24px; left: 24px; }
+.contents-back { margin-left: 16px; }
+
 /* ---------- page-to-page motion ---------- */
 @view-transition { navigation: auto; }
 ::view-transition-group(*) { animation-duration: .5s; animation-timing-function: var(--ease); }
@@ -169,6 +174,7 @@ main#contents { padding-bottom: 80px; }
 ::view-transition-old(lesson) { animation-duration: .18s; }
 @media (max-width: 560px) {
   .home strong { font-size: 18px; }
+  .contents-back { margin-left: 0; font-size: 11px; }
   #contents .top { flex-wrap: wrap; gap: 8px 12px; }
   .unit-art { width: calc(100% - 32px); right: 16px; opacity: .32; }
   .unit h2 { min-height: 0; padding-top: 104px; }
@@ -203,12 +209,14 @@ main#contents { padding-bottom: 80px; }
     <a class="btn quiet" id="resume" hidden></a>
   </div>
   <p class="meta" id="meta"></p>
+  <a class="back-shelf cover-back" href="../">← Back to the bookshelf</a>
 </section>
 
 <main id="contents">
   <header class="top">
     <a class="home" href="#book" aria-label="Back to the cover"><svg class="mascot" id="guideSmall" width="52" height="36"></svg><strong>Motion <i>&amp;</i> Forces</strong></a>
     <span class="prog" id="prog"></span>
+    <a class="back-shelf contents-back" href="../">← Bookshelf</a>
   </header>
   <div id="units"></div>
 </main>
