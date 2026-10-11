@@ -23,7 +23,8 @@ tools/<book>/                 targeted tests when needed
 site/                          static output; private sources stay outside
   <book>/index.html            cover + contents        (assets/templates/book.html)
   <book>/unit-art.js           unit sketches           (assets/templates/unit-art.js)
-  <book>/lib/engine.js, .css   this book's engine copy (assets/engine/)
+  <book>/lib/engine.*, volume.*  the shared engine, copied from assets/engine/ by scripts/sync_engine.py
+  <book>/lib/book.css          this book's engine settings and style overrides
   <book>/chNN/index.html       a lesson                (assets/templates/chapter.html)
   <book>/chNN/audio/<lang>/    beat MP3s + timings.js
 ```

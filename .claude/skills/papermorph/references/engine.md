@@ -2,6 +2,8 @@
 
 A chapter page loads the engine and its `audio/<lang>/timings.js`, defines `CHAPTER` (including `language` when different from `en`), drawing helpers, `BEATS` and questions, then calls `boot()`. The engine provides the stage, drawing, timeline, question types, guide and player. Use the code's signatures if they differ from this reference.
 
+Every book keeps a copy of the shared engine in `lib/` (`engine.*`, `volume.*`), so the book runs on its own. Change the engine in `assets/engine/`, then copy it to the books with `python3 SKILL/scripts/sync_engine.py site` (`--check` lists copies that differ); a book's copy is not edited by hand. The book's own settings and style overrides live in `lib/book.css`, imported by `engine.css` and never overwritten: `--math-font` for numbers and formulas, `--progress-key` when the cover uses a key other than the default.
+
 Many helpers are mathematical because the first book was algebra. Use those that fit, implement new ones in the chapter as needed, and share them in the book's engine when another chapter uses them.
 
 ## Stage and state

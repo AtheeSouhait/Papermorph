@@ -11,7 +11,7 @@ BOOK_ID=history
 BOOK_SITE="site/$BOOK_ID"
 BOOK_WORK="books/$BOOK_ID"
 mkdir -p "$BOOK_SITE/lib" "$BOOK_SITE/ch01" "$BOOK_WORK/chapters" "content/$BOOK_ID/ch01" "tools/$BOOK_ID"
-cp "$SKILL/assets/engine/engine.js" "$SKILL/assets/engine/engine.css" "$BOOK_SITE/lib/"
+python3 "$SKILL/scripts/sync_engine.py" "$BOOK_SITE"   # the shared engine into lib/, plus lib/book.css for this book's settings
 cp "$SKILL/assets/templates/book.html" "$BOOK_SITE/index.html"
 cp "$SKILL/assets/templates/unit-art.js" "$BOOK_SITE/unit-art.js"
 cp "$SKILL/assets/templates/chapter.html" "$BOOK_SITE/ch01/index.html"
@@ -20,7 +20,7 @@ cp "$SKILL/assets/templates/narration.en.json" "content/$BOOK_ID/ch01/narration.
 
 Use the agreed primary language: rename the narration source, load `audio/<lang>/timings.js`, and set `CHAPTER.language` to match (default `en`). Choose the voice and translate the template's visible UI text as needed before the pilot.
 
-Each book has its own engine, source materials, narration and optional tests. The engine and cover derive the same progress key from the book's URL folder. Keep existing books on their current paths; their legacy progress remains intact.
+Each book has its own engine copy (kept in step with `sync_engine.py`, see [engine.md](engine.md)), source materials, narration and optional tests. The engine and cover derive the same progress key from the book's URL folder. Keep existing books on their current paths; their legacy progress remains intact.
 
 A chapter returns to its book's index. Preserve cover → contents → chapter navigation and the return from contents to cover. The book opens directly at `/<book>/`; it needs no parent index page. Keep existing books' navigation when editing them.
 
