@@ -19,7 +19,10 @@ OWN = 'book.css'
 def books(target: Path):
     if (target / 'lib' / 'engine.js').exists():
         return [target]
-    return sorted(p.parent.parent for p in target.glob('*/lib/engine.js')) or [target]   # or a new book
+    found = sorted(p.parent.parent for p in target.glob('*/lib/engine.js'))
+    if not found and (target / 'lib').is_dir():   # e.g. site/ with the bookshelf's lib/, before any book exists
+        sys.exit(f'{target}/lib has no engine.js and no book folder below it has one: pass the book folder itself')
+    return found or [target]   # or a new book
 
 
 def main():
@@ -27,7 +30,7 @@ def main():
     ap.add_argument('target', type=Path, help='a book folder, or a folder of books')
     ap.add_argument('--check', action='store_true', help='only report differing copies')
     a = ap.parse_args()
-    shared = sorted(p for p in ENGINE.iterdir() if p.is_file() and p.name != OWN)
+    shared = sorted(p for p in ENGINE.iterdir() if p.is_file() and p.name != OWN and not p.name.startswith('.'))
     stale = []
     for book in books(a.target):
         lib = book / 'lib'

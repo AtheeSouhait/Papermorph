@@ -4,7 +4,7 @@ A chapter page loads the engine and its `audio/<lang>/timings.js`, defines `CHAP
 
 Every book keeps a copy of the shared engine in `lib/` (`engine.*`, `volume.*`), so the book runs on its own. Change the engine in `assets/engine/`, then copy it to the books with `python3 SKILL/scripts/sync_engine.py site` (`--check` lists copies that differ); a book's copy is not edited by hand. The book's own settings and style overrides live in `lib/book.css`, imported by `engine.css` and never overwritten: `--math-font` for numbers and formulas, `--progress-key` when the cover uses a key other than the default.
 
-Many helpers are mathematical because the first book was algebra. Use those that fit, implement new ones in the chapter as needed, and share them in the book's engine when another chapter uses them.
+Many helpers are mathematical because the first book was algebra. Use those that fit, implement new ones in the chapter as needed, and move what several chapters use into the book's own library file (`lib/<name>.js`), not into the engine copy.
 
 ## Stage and state
 
@@ -12,7 +12,7 @@ Many helpers are mathematical because the first book was algebra. Use those that
 - Every animated element carries a state object written to the DOM by `render()`: `x y` (translate), `s` (scale), `r` (rotate, degrees), `o` (opacity), `d` (stroke drawn, 0–1), `a_<attr>` (numeric attribute, e.g. `'a_stroke-width'`), `c_<attr>` (hex colour). Give a key a starting value before tweening it; an `a_`/`c_` key without one starts from the element's attribute.
 - Scale and rotation are about the element's own origin: draw around (0,0) and place with `x/y`.
 - `S` holds objects shared across beats (`S.panel`, `S.line`, …). `reset()` clears it, so anything a later beat needs must be stored on `S`.
-- Palette `COL`: `chalk dim faint task good bad board` plus six hues `nat whole int rat irr real`. Fonts: `UI` (text), `MATH` (serif).
+- Palette `COL`: `chalk dim faint task good bad board` plus six hues `nat whole int rat irr real`. Fonts: `UI` (text), `MATH` (serif unless the book's `--math-font` says otherwise).
 
 ## Drawing
 
@@ -91,7 +91,7 @@ quiz(position, [{ id: 'c-mean', prompt: ['Find the mean of ', $m('7, 3, 9'), '.'
 
 Space play/pause, ←/→ previous/next beat (Shift+←/→ during a question), Home restart, C captions, F full screen, ? help. `seek(i, play)` rebuilds and jumps; `start(i, play)` begins a beat from the current picture. While audio plays, the beat clock follows `audio.currentTime`. `?beat=N&t=S` in the URL opens a frozen frame for review. The finish card's Enter opens `CHAPTER.next`, R replays.
 
-Progress uses the stable legacy key `animebook:progress:<book-path>` (keep it when renaming the project so existing readers retain their progress); the cover template reads the same key. Books served in different folders have separate saved places and completion lists.
+Progress uses the stable legacy key `animebook:progress:<book-path>` (keep it when renaming the project so existing readers retain their progress); the cover template reads the same key. A book can set another key with `--progress-key` in `lib/book.css`; its cover must then read that key. Books served in different folders have separate saved places and completion lists.
 
 Treat saved progress as optional: malformed JSON, `null` or a non-object value starts with empty progress; only an array of positive integer chapter numbers is used for completion. Preserve each existing book's key when applying engine fixes.
 
@@ -101,7 +101,7 @@ Keep `<link rel="expect" href="#bar" blocking="render">` in every chapter's head
 
 - `M()` italicises 1–2 letter lowercase runs (variables) and runs of capitals, but keeps common short English words upright (by, my, an, if, in, is, of, or, …; capitalised: By, If, In, …). In maths write `b​y`, `m​y`, `a​n`, `B​y` to keep them italic. Units inside `M()` turn italic too: write them as words in `T()` text ("meters"). Never put an English sentence in `M()`.
 - Prompts, `grid` text rows and `choice` options are HTML: plain strings render as text, so wrap math in `$m(...)`.
-- Prefix chapter-specific helpers when their names might collide with engine globals (`rect`, `popIn`, `eqLine`, `fit`, `slot`, `Y0`, …); a redeclaration stops the page script.
+- Prefix chapter-specific helpers when their names might collide with engine globals (`rect`, `popIn`, `eqLine`, `fit`, `slot`, `Y0`, `OV`, `camera`, `soft`, `clockRun`, `retire`, `seeking`, `BOOK`, `bookSetting`, …); a redeclaration stops the page script.
 - Drag handling: re-parent (append) the element before `setPointerCapture`; moving a node drops its capture.
 - A card whose content is too long for `BAND` should become several `blanks` rows in a wider side card.
 - When a question beat is continued early, the engine finishes the beat's pending tweens first; don't rely on half-finished fades.
