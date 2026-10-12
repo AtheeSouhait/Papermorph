@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Real-audio volume regression for both books and the Skill chapter template.
 
-Serve site on 8767, then: uv run --with playwright .claude/skills/papermorph/scripts/check_volume.py
+Serve site on 8767, then: uv run --with playwright engine/check_volume.py
 BASE_URL overrides http://127.0.0.1:8767. No files are generated.
 """
 import asyncio
@@ -12,8 +12,9 @@ from urllib.parse import urlparse
 
 from playwright.async_api import async_playwright
 
-SKILL = Path(__file__).resolve().parents[1]
-SITE = SKILL.parents[2] / "site"
+ENGINE = Path(__file__).resolve().parent
+SKILL = ENGINE.parent / ".claude/skills/papermorph"
+SITE = ENGINE.parent / "site"
 BASE = os.environ.get("BASE_URL", "http://127.0.0.1:8767").rstrip("/")
 
 
@@ -22,7 +23,7 @@ async def template(route):
     if name == "ch01/":
         await route.fulfill(path=SKILL / "assets/templates/chapter.html")
     elif name.startswith("lib/"):
-        await route.fulfill(path=SKILL / "assets/engine" / Path(name).name)
+        await route.fulfill(path=ENGINE / Path(name).name)
     elif name.endswith("timings.js"):
         timing = {"dur": 30, "marks": {"sub": 1, "note": 2, "w1": 3, "w2": 4}, "cues": []}
         await route.fulfill(content_type="text/javascript", body="const TIMINGS = " + json.dumps(
