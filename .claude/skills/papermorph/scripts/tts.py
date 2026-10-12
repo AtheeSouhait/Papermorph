@@ -207,4 +207,7 @@ async def main(src, out_dir):
 
 
 if __name__ == "__main__":
+    if len(sys.argv) != 3:
+        print(__doc__)
+        sys.exit(0 if sys.argv[1:] in (["-h"], ["--help"]) else 2)
     asyncio.run(main(*sys.argv[1:3]))

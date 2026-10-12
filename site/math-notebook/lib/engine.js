@@ -5,19 +5,6 @@
 addEventListener('pagereveal', e => e.viewTransition?.ready.catch(() => {}));
 document.body.insertAdjacentHTML('afterbegin', `<div id="frame">
   <svg id="stage" viewBox="0 0 1600 900" role="img" aria-label="Lesson animation">
-    <defs>
-      <filter id="grain" x="0" y="0" width="100%" height="100%">
-        <feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="7" />
-        <feColorMatrix values="0 0 0 0 .92  0 0 0 0 .95  0 0 0 0 .9  0 0 0 .07 0" />
-      </filter>
-      <radialGradient id="vignette" cx=".5" cy=".45" r=".75">
-        <stop offset=".6" stop-color="#000" stop-opacity="0" />
-        <stop offset="1" stop-color="#000" stop-opacity=".35" />
-      </radialGradient>
-    </defs>
-    <rect width="1600" height="900" fill="#1d2b27" />
-    <rect width="1600" height="900" filter="url(#grain)" />
-    <rect width="1600" height="900" fill="url(#vignette)" />
     <g id="scene"></g>
   </svg>
   <div id="ui"></div>
@@ -33,6 +20,7 @@ document.body.insertAdjacentHTML('afterbegin', `<div id="frame">
           <dt><kbd>Shift</kbd><kbd>←</kbd><kbd>→</kbd></dt><dd>Change step during a question</dd>
           <dt><kbd>Home</kbd></dt><dd>Start over</dd>
           <dt><kbd>C</kbd></dt><dd>Captions on or off</dd>
+          <dt><kbd>&lt;</kbd><kbd>&gt;</kbd></dt><dd>Slower or faster</dd>
           <dt><kbd>F</kbd></dt><dd>Full screen</dd>
           <dt><kbd>?</kbd></dt><dd>Show this list</dd>
         </dl></div>
@@ -72,16 +60,8 @@ document.body.insertAdjacentHTML('afterbegin', `<div id="frame">
     </button>
     <div class="segs" id="segs"></div>
     <div class="step" id="stepName"></div>
-    <div class="volume">
-      <button class="icon" id="bVolume" aria-label="Adjust volume" aria-controls="volume" title="Volume (0 = muted)">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M3 9v6h4l5 4V5L7 9z" fill="currentColor"/>
-          <path d="M16 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-        </svg>
-      </button>
-      <input id="volume" type="range" min="0" max="1" step="0.05" value="1" aria-label="Volume">
-    </div>
     <button class="icon txt" id="bHelp" aria-label="Keyboard shortcuts (?)" title="Keyboard shortcuts (?)">?</button>
+    <button class="icon txt speed" id="bSpeed" aria-label="Playback speed (&lt; and &gt;)" title="Playback speed (&lt; and &gt;)">1×</button>
     <button class="icon cc" id="bCC" aria-pressed="false" aria-label="Captions (C)" title="Captions (C)">CC</button>
     <button class="icon" id="bFull" aria-label="Full screen">
       <svg viewBox="0 0 18 18"><path d="M1 1h6v2H3v4H1zM11 1h6v6h-2V3h-4zM1 11h2v4h4v2H1zM15 11h2v6h-6v-2h4z"/></svg>
@@ -89,15 +69,29 @@ document.body.insertAdjacentHTML('afterbegin', `<div id="frame">
   </div>
 </div>`);
 
+// Board colour, grain and vignette are a static CSS background of #stage (engine.css). The grain is a small noise
+// texture made once here: an SVG turbulence filter behind animated content is recomputed on every frame in Firefox.
+{
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const x = c.getContext('2d'), d = x.createImageData(256, 256);
+  for (let i = 0, s = 7; i < d.data.length; i += 4) { s = s * 16807 % 2147483647; d.data.set([235, 242, 230, 4 + s % 12], i); }
+  x.putImageData(d, 0, 0);
+  document.getElementById('stage').style.setProperty('--grain', `url(${c.toDataURL()})`);
+}
+
 /* ---------- drawing helpers ---------- */
 const NS = 'http://www.w3.org/2000/svg';
 const COL = { nat: '#f4a48c', whole: '#86c9e8', int: '#f3c95c', rat: '#e8a0c8', irr: '#8fd6b0', real: '#bba8ee',
   chalk: '#ece8dc', dim: '#9aaba3', faint: '#5d7068', task: '#f0b45a', good: '#8fd6b0', bad: '#f08c7a', board: '#1d2b27' };
 const UI = '"Avenir Next","Segoe UI","Helvetica Neue",Arial,sans-serif';
-const MATH = '"STIX Two Text","Cambria Math","Iowan Old Style",Palatino,Georgia,serif';
+// Book settings (lib/book.css, next to engine.css and imported by it): --math-font for numbers and formulas,
+// --progress-key for the localStorage key the cover and chapters share.
+const BOOK = getComputedStyle(document.documentElement);
+const bookSetting = name => BOOK.getPropertyValue(name).trim().replace(/^(["'])([^"']*)\1$/, '$2');   // unquote a lone string only
+const MATH = bookSetting('--math-font') || '"STIX Two Text","Cambria Math","Iowan Old Style",Palatino,Georgia,serif';
 const NAME = { nat: 'Natural', whole: 'Whole', int: 'Integers', rat: 'Rational', irr: 'Irrational', real: 'Real' };
 // Card positions inside the 1600×900 picture.
-const BAND = { x: 96, y: 686, w: 1408, cls: 'band' };      // below the number line
+const BAND = { x: 96, y: 686, w: 1408, cls: 'band' };      // bottom band (moves up when taller than the space left)
 const RIGHT = { x: 1258, y: 546, w: 330, cls: 'side', maxH: 346 };    // right of the number map
 const TOPR = { x: 960, y: 70, w: 624, cls: 'side', maxH: 470 };   // top right, above the number line
 const SCREEN = { x: 0, y: 0, w: 1600, cls: 'screen' };
@@ -114,11 +108,11 @@ function mk(tag, attrs = {}, parent) {
 // Keys: x y s r o (transform/opacity), d (0..1 stroke drawn), a_<attr> numeric attr, c_<attr> hex colour.
 function st(e) { return e._st || (e._st = { x: 0, y: 0, s: 1, r: 0, o: 1 }); }
 function put(e, o) { Object.assign(st(e), o); render(e); return e; }
+// Unchanged transform/opacity are not rewritten: per-frame updates of still elements cost repaints (notably in Firefox).
 function render(e) {
-  const s = e._st;
-  if (s.x || s.y || s.s !== 1 || s.r) e.setAttribute('transform', `translate(${s.x},${s.y}) rotate(${s.r}) scale(${s.s})`);
-  else e.removeAttribute('transform');
-  e.setAttribute('opacity', s.o);
+  const s = e._st, tf = s.x || s.y || s.s !== 1 || s.r ? `translate(${s.x},${s.y}) rotate(${s.r}) scale(${s.s})` : null;
+  if (tf !== e._tf) { if (tf) e.setAttribute('transform', tf); else e.removeAttribute('transform'); e._tf = tf; }
+  if (s.o !== e._o) { e.setAttribute('opacity', s.o); e._o = s.o; }
   if (s.d !== undefined) {
     e.setAttribute('stroke-dashoffset', 1 - s.d);
     e.style.visibility = s.d < .002 ? 'hidden' : '';
@@ -146,8 +140,51 @@ const VAR = /(?<![A-Za-z°])(?:(?!(?:of|in|is|to|or|at|on|by|as|an|if|it|be|no|s
 const F = (n, d) => ({ f: [String(n), String(d)] });   // fraction
 const R = (x, i) => ({ r: x && x.f ? x : String(x), i: i && String(i) });   // root of a number or of F(n, d); i = index, e.g. 3 for a cube root
 const E = x => ({ sup: String(x) });                    // exponent, raised after the part before it
+const TX = tex => ({ tex: String(tex) });               // LaTeX, drawn by MathJax; the book loads lib/mathjax.js right after this file
+const $tex = tex => $m(TX(tex));                        // LaTeX inline in HTML text
+// MathJax takes this object as its configuration when lib/mathjax.js loads after the engine.
+window.MathJax ??= {
+  startup: { typeset: false },                                   // no page scan; formulas are converted on demand
+  svg: { fontCache: 'none', mtextInheritFont: true },            // self-contained paths; \text{} in the book's math font
+  tex: { packages: { '[-]': ['noerrors', 'noundefined'] },       // a typo stops the page, like a misspelt mark
+         formatError: (_, error) => { throw error; } },
+  options: { enableMenu: false },
+};
+const TEX_CACHE = new Map();   // TeX source -> { graphic, viewBox }; seek() redraws every earlier beat
+// A copy of the formula's MathJax drawing: units of 1/1000 em, baseline at y = 0; viewBox is [x, y, width, height].
+function texGraphic(tex) {
+  let drawn = TEX_CACHE.get(tex);
+  if (!drawn) {
+    if (!window.MathJax?.tex2svg) throw new Error(`TX('${tex}') needs lib/mathjax.js: load ../lib/mathjax.js right after engine.js`);
+    if (!document.getElementById('MJX-SVG-styles')) document.head.append(MathJax.svgStylesheet());   // draws table rules and frames
+    let svg;
+    try { svg = MathJax.tex2svg(tex, { display: false, family: MATH }).querySelector('svg'); }   // family: \text{} is measured in the font it is drawn in
+    catch (error) { throw new Error(`TX('${tex}'): ${error.message}`); }
+    const graphic = mk('g');
+    graphic.append(...svg.childNodes);
+    drawn = { graphic, viewBox: svg.getAttribute('viewBox').split(' ').map(Number) };
+    TEX_CACHE.set(tex, drawn);
+  }
+  return { graphic: drawn.graphic.cloneNode(true), viewBox: drawn.viewBox };
+}
+// The part of a TeX formula marked \class{name}{...}, ready for tw/fx on c_color and o.
+// MathJax places the part with its own transform, so the tweens act on a group inside it.
+function texPart(el, name) {
+  const part = el.querySelector(`g.${CSS.escape(name)}`);
+  if (!part) throw new Error(`texPart: no \\class{${name}}{…} in this formula`);
+  if (!part._tweenGroup) {
+    const group = mk('g');
+    group.append(...part.childNodes);
+    part.append(group);
+    const color = part.closest('[color]')?.getAttribute('color');   // the formula's fill
+    put(group, /^#[\da-f]{6}$/i.test(color) ? { c_color: color } : {});
+    part._tweenGroup = group;
+  }
+  return part._tweenGroup;
+}
 const OV = x => ({ ov: String(x) });                    // digits under a repeat bar: ['0.', OV('3')] is 0.333…
-// Math expression from parts: 'text' | F(n,d) | R(x) | E(exp). Baseline at y; anchor start/middle/end.
+// Math expression from parts: 'text' | F(n,d) | R(x) | E(exp) | OV(digits) | TX(tex). Baseline at y; anchor start/middle/end.
+// _ascent and _descent are the TeX parts' height above and below the baseline (0 without TX).
 function M(parent, parts, { x = 0, y = 0, size = 36, fill = COL.chalk, anchor = 'middle', o = 1, s = 1 } = {}) {
   const g = G(parent, { x, y, o, s });
   const inner = mk('g', {}, g);
@@ -166,10 +203,18 @@ function M(parent, parts, { x = 0, y = 0, size = 36, fill = COL.chalk, anchor = 
     return w;
   };
   const rule = (x1, x2, yy) => mk('path', { d: `M${x1} ${yy}H${x2}`, stroke: fill, 'stroke-width': lw, 'stroke-linecap': 'round' }, inner);
-  let cx = 0;
+  let cx = 0, ascent = 0, descent = 0;
   for (const p of parts) {
     if (typeof p === 'string') cx += text(p, cx, 0, size);
-    else if (p.f) {
+    else if (p.tex !== undefined) {
+      const { graphic, viewBox: [, top, w, h] } = texGraphic(p.tex), k = size / 1000;   // 1000 units = 1 em = size
+      graphic.setAttribute('transform', `translate(${cx},0) scale(${k})`);
+      graphic.setAttribute('color', fill);   // MathJax paints with currentColor
+      inner.append(graphic);
+      ascent = Math.max(ascent, -top * k);
+      descent = Math.max(descent, (top + h) * k);
+      cx += w * k;
+    } else if (p.f) {
       const fs = size * .72, [n, d] = p.f, wn = textW(n, fs), wd = textW(d, fs);
       const w = Math.max(wn, wd) + size * .2, bar = -size * .3;
       text(n, cx + (w - wn) / 2, bar - size * .12, fs);
@@ -202,6 +247,8 @@ function M(parent, parts, { x = 0, y = 0, size = 36, fill = COL.chalk, anchor = 
   const dx = anchor === 'middle' ? -cx / 2 : anchor === 'end' ? -cx : 0;
   inner.setAttribute('transform', `translate(${dx},0)`);
   g._w = cx;
+  g._ascent = ascent;
+  g._descent = descent;
   return g;
 }
 // Pill-shaped number token, centred on (x, y).
@@ -209,7 +256,13 @@ function chip(parent, parts, color, { x = 0, y = 0, o = 1, s = 1, size = 34 } = 
   const g = G(parent, { x, y, o, s });
   const rect = mk('rect', {}, g);
   const m = M(g, parts, { size, y: size * .3 });
-  const w = Math.max(m._w + 36, 64), h = size * (parts.some(p => p.f) ? 1.75 : 1.45);
+  const w = Math.max(m._w + 36, 64);
+  let h = size * (parts.some(p => p.f) ? 1.75 : 1.45);
+  if (m._ascent) {   // a TeX formula: centre it and grow the pill to fit
+    const above = Math.max(size * 1.05, m._ascent), below = Math.max(size * .45, m._descent);
+    put(m, { y: (above - below) / 2 });
+    h = Math.max(h, m._ascent + m._descent + size * .4);
+  }
   for (const [k, v] of Object.entries({ x: -w / 2, y: -h / 2, width: w, height: h, rx: h / 2, fill: COL.board, stroke: color, 'stroke-width': 2.5 })) rect.setAttribute(k, v);
   g._rect = rect;
   return g;
@@ -236,8 +289,14 @@ function layRow(els, { x, y, size, anchor }, move) {
 function collapse(row, i, j, parts, t0, { color = COL.task, fill = COL.chalk, live = false } = {}) {
   const run = live ? fx : tw, p = row[0].parentNode, { size, y } = row;
   const left = row[i]._px - row[i]._w / 2, right = row[j]._px + row[j]._w / 2;
+  let above = size * .95, height = size * 1.3;
+  const tall = row.slice(i, j + 1).filter(e => e._ascent);   // TeX tokens may reach higher and lower than text
+  if (tall.length) {
+    above = Math.max(above, ...tall.map(e => e._ascent + 8));
+    height = above + Math.max(size * .35, ...tall.map(e => e._descent + 8));
+  }
   const box = put(mk('rect', { rx: 10, fill: 'none', stroke: color, 'stroke-width': 3 }, p),
-    { o: 0, a_x: left - 8, a_y: y - size * .95, a_width: right - left + 16, a_height: size * 1.3 });
+    { o: 0, a_x: left - 8, a_y: y - above, a_width: right - left + 16, a_height: height });
   run(box, { o: 1 }, t0, .3);
   run(box, { o: 0 }, t0 + 1.2, .3);
   const res = M(p, parts, { size, fill, o: 0, x: (left + right) / 2, y });
@@ -765,11 +824,16 @@ function brace(p, a, b, y, label, color, t0) {
 function mathEl(parts, size = 22) {
   const svg = mk('svg', { class: 'm', 'font-weight': 400 });   // widths are measured at normal weight, so a bold prompt must not thicken the math
   const m = M(svg, parts, { size, anchor: 'start', fill: 'currentColor' });
-  const top = size * 1.05, h = size * 1.5;
+  let top = size * 1.05, bottom = size * .45, h = size * 1.5;
+  if (m._ascent) {   // a TeX formula may reach higher and lower than text
+    top = Math.max(top, m._ascent + size * .1);
+    bottom = Math.max(bottom, m._descent + size * .1);
+    h = top + bottom;
+  }
   svg.setAttribute('viewBox', `0 ${-top} ${m._w + 2} ${h}`);
   svg.setAttribute('width', m._w + 2);
   svg.setAttribute('height', h);
-  svg.style.verticalAlign = `${-size * .45}px`;  // line up the math baseline with the text baseline
+  svg.style.verticalAlign = `${-bottom}px`;  // line up the math baseline with the text baseline
   return svg;
 }
 
@@ -841,6 +905,83 @@ function evalTo(t, list = TW) {
   }
 }
 
+/* ---------- world clock and camera ---------- */
+const soft = p => (1 - Math.cos(Math.PI * p)) / 2;   // gentle in-out, for camera moves
+// Continuous motion: f(t) runs on every frame of the beat with t in seconds from its start (0..D).
+// Keep f a pure function of t, so pause, seek and ?beat=N&t=S show the same frame.
+const clockRun = (f, D) => { f(0); prog(q => f(q * D), 0, D, lin); };
+// A camera looks at a world group through the stage (or a box, for split screen and picture-in-picture).
+// The view {x, y, z, r} is the world point at the centre, the zoom (screen px per world px) and the roll in degrees.
+// Moves are keyed on the beat clock: to(view, t0, dur, ease) blends each given key from its value at t0; a key may be a
+// function of t (follow). Unspecified keys keep following the earlier moves. dur 0 is a hard cut.
+let camN = 0;
+function camera(p, D, { box, x = 800, y = 450, z, r = 0, bg = COL.board } = {}) {
+  const [bx, by, bw, bh] = box || [0, 0, 1600, 900];
+  const el = G(p, { x: bx + bw / 2, y: by + bh / 2 });
+  let hold = el;
+  if (box) {
+    const id = 'cam' + (++camN);
+    mk('rect', { x: -bw / 2, y: -bh / 2, width: bw, height: bh, rx: 18 }, mk('clipPath', { id }, mk('defs', {}, el)));
+    hold = G(el); hold.setAttribute('clip-path', `url(#${id})`);
+    mk('rect', { x: -bw / 2, y: -bh / 2, width: bw, height: bh, fill: bg }, hold);
+  }
+  const view = mk('g', {}, hold), world = G(view);
+  if (box) mk('rect', { x: -bw / 2, y: -bh / 2, width: bw, height: bh, rx: 18, fill: 'none', stroke: COL.faint, 'stroke-width': 2 }, el);
+  const v0 = { x, y, z: z ?? (box ? Math.min(bw / 1600, bh / 900) : 1), r };
+  const ops = [], shakes = [], layers = [];
+  const val = (v, t) => typeof v === 'function' ? v(t) : v;
+  // The view at time t after the first n moves; each move remembers the view it starts from.
+  function at(t, n = ops.length) {
+    const s = { ...v0 };
+    for (let i = 0; i < n && ops[i].t0 <= t; i++) {
+      const o = ops[i], a = o.from || (o.from = at(o.t0, i));
+      const q = o.dur ? o.ease(Math.min(1, (t - o.t0) / o.dur)) : 1, b = {};
+      for (const k in o.v) b[k] = val(o.v[k], t);
+      if ('z' in b) s.z = a.z * (b.z / a.z) ** q;   // even zoom speed
+      // While zooming, x/y move so that one world point stays put on screen (when start and end allow it).
+      const u = 'z' in b && Math.abs(b.z - a.z) > 1e-6 * a.z ? (1 / s.z - 1 / a.z) / (1 / b.z - 1 / a.z) : q;
+      for (const k of ['x', 'y']) if (k in b) s[k] = a[k] + (b[k] - a[k]) * u;
+      if ('r' in b) s.r = a.r + (b.r - a.r) * q;
+    }
+    return s;
+  }
+  function apply(t) {
+    const s = at(t);
+    let sx = 0, sy = 0;
+    for (const k of shakes) if (t > k.t0 && t < k.t0 + k.dur) {
+      const e = k.amp * Math.min(1, (t - k.t0) / .3, (k.t0 + k.dur - t) / .3), w = 2 * Math.PI * k.hz * t;
+      sx += e * (Math.sin(w) + .5 * Math.sin(2.3 * w + 1)) / 1.5; sy += e * (Math.sin(1.7 * w + 2) + .5 * Math.sin(3.1 * w)) / 1.5;
+    }
+    const tf = `translate(${sx} ${sy}) rotate(${-s.r}) scale(${s.z}) translate(${-s.x} ${-s.y})`;
+    if (tf !== view._tf) view.setAttribute('transform', view._tf = tf);
+    const dx = s.x - v0.x, dy = s.y - v0.y;
+    for (const L of layers) put(L.g, { x: L.wrap ? dx - ((L.k * dx) % L.wrap + L.wrap) % L.wrap : (1 - L.k) * dx, y: (1 - L.k) * dy });
+  }
+  const cam = { el, world, at,
+    to(v, t0, dur = 1, ease = soft) { ops.push({ v, t0, dur, ease }); ops.sort((a, b) => a.t0 - b.t0); ops.forEach(o => delete o.from); return cam; },
+    cut: (v, t0) => cam.to(v, t0, 0),
+    shake(amp, t0, dur, hz = 7) { shakes.push({ amp, t0, dur, hz }); return cam; },
+    // Parallax layer: k < 1 is far (moves slower than the camera), k > 1 near. With wrap = W the layer's content
+    // repeats every W world px: draw one period plus the widest view, and the layer never runs out.
+    layer(k = 1, wrap) { const g = G(world); layers.push({ g, k, wrap }); return g; },
+    // Screen position of a world point at time t (k = 1 layers, no shake): for labels that track an object.
+    screen(wx, wy, t) {
+      const s = at(t), a = -s.r * Math.PI / 180, ux = (wx - s.x) * s.z, uy = (wy - s.y) * s.z;
+      return [bx + bw / 2 + ux * Math.cos(a) - uy * Math.sin(a), by + bh / 2 + ux * Math.sin(a) + uy * Math.cos(a)];
+    },
+    // Put a screen-space label (text, anchor middle, outside the camera) over world point (wx, wy) at time t, kept
+    // inside the frame or box by margin m; it fades out once the point itself leaves. Fade it in with a wrapper group.
+    track(el, wx, wy, t, m = 24) {
+      const [sx, sy] = cam.screen(wx, wy, t), str = el.textContent;
+      if (el._tw?.[0] !== str) el._tw = [str, el.getComputedTextLength() / 2];
+      const h = el._tw[1], away = Math.max(bx - sx, sx - bx - bw, 0);
+      put(el, { x: Math.min(bx + bw - m - h, Math.max(bx + m + h, sx)), y: sy, o: Math.max(0, 1 - away / 80) });
+    },
+  };
+  clockRun(apply, D);
+  return cam;
+}
+
 /* ---------- scene ---------- */
 const scene = document.getElementById('scene');
 const S = {};
@@ -866,8 +1007,23 @@ function dot(key, v, r = 9, name = v) {
 const arrow = (x, dir) => `M${x - 15 * dir} ${Y0 - 10}L${x} ${Y0}L${x - 15 * dir} ${Y0 + 10}`;
 function panel(t0) {
   if (t0 < .5) S.cleared = true;   // the old panel fades, or this is the first panel after the title
-  if (S.panel) hide(S.panel, t0, .4);
+  const old = S.panel;
+  if (old && t0 < .5) retire(old);
+  else if (old) {   // a panel change later in the beat stays on the beat clock
+    hide(old, t0, .4);
+    prog(q => { if (q === 1) old.style.display = 'none'; }, t0 + .4, 0, lin);
+  }
   return (S.panel = G(scene));
+}
+// Take a beat's old picture away on wall time: a 150 ms fade, then out of rendering. On the beat clock the fade would
+// wait for the new clip's audio to start (a few hundred ms in Firefox) with the old, frozen scene still showing.
+// While seeking, the pictures passed on the way were never seen: they go at once.
+let seeking = false;
+function retire(e) {
+  if (seeking) { e.style.display = 'none'; return; }
+  e.style.transition = 'opacity .15s linear';
+  e.style.opacity = '0';
+  setTimeout(() => { e.style.display = 'none'; }, 160);
 }
 function header(p, str, t0, x = 1000, y = 170) {
   const h = T(p, str, { x, y, size: 30, fill: COL.dim, weight: 600, o: 0 });
@@ -930,6 +1086,8 @@ function finishCard() {
 
 /* ---------- in-picture cards ---------- */
 const $ = id => document.getElementById(id);
+// The volume control (volume.js, volume.css) lives in its own files next to this one, the same in every book.
+document.head.append(Object.assign(document.createElement('script'), { src: new URL('volume.js', document.currentScript.src) }));
 const kbd = s => h('kbd', '', s);
 const uiW = (str, size) => { ctx2d.font = `600 ${size}px ${UI}`; return ctx2d.measureText(str).width; };
 const RING_KEYS = ['nat', 'whole', 'int', 'rat', 'irr', 'real'];   // number keys 1–6 in sorting questions
@@ -947,11 +1105,19 @@ function rich(parts, size = 28) {
   for (const p of [].concat(parts)) s.append(typeof p === 'string' || p instanceof Node ? p : mathEl(p.m, size));
   return s;
 }
+// A card at pos; a band card keeps its bottom on the stage: when its content grows (a long question, feedback),
+// it moves up rather than running under the player bar.
 function card(pos, cls) {
   const c = h('div', `card ${pos.cls} ${cls}`);
   Object.assign(c.style, { left: pos.x + 'px', top: pos.y + 'px', width: pos.w + 'px' });
   if (pos.maxH) c.style.maxHeight = pos.maxH + 'px';
   $('ui').append(c);
+  if (pos.cls === 'band') {
+    const fit = () => { c.style.top = Math.max(16, Math.min(pos.y, 900 - 16 - c.offsetHeight)) + 'px'; };
+    const ro = new ResizeObserver(fit);
+    ro.observe(c); fit();
+    P.cleanup.push(() => ro.disconnect());
+  }
   return c;
 }
 // The guide: an infinity sign whose two loops are its eyes. Drawn in SVG so it can blink, hop and wobble.
@@ -1189,7 +1355,11 @@ const grid = (items, cols, { multi = true, text = false } = {}) => (body, api) =
     return { it, bs, mark, why, picked, el, played: false };
   });
   const single = rows.length === 1;
-  const showCur = () => rows.forEach((r, i) => r.el.classList.toggle('cur', !single && !locked && i === cur));
+  const showCur = () => rows.forEach((r, i) => {
+    const on = !single && !locked && i === cur;
+    r.el.classList.toggle('cur', on);
+    if (on && r.el.isConnected) r.el.scrollIntoView({ block: 'nearest' });   // a long practice list scrolls
+  });
   showCur();
   body.append(wrap);
   const judge = r => {
@@ -1320,7 +1490,7 @@ const slot = (k, n) => {
   const r = RINGS[k];
   return [r.lx + [-72, 72, 0][n % 3], r.ly + 50 + 56 * Math.floor(n / 2)];
 };
-const plain = parts => parts.map(p => typeof p === 'string' ? p : p.ov !== undefined ? p.ov + ' repeating' : p.f ? p.f.join('/') : p.sup !== undefined ? '^' + p.sup : (p.i ? p.i : '') + '√' + (p.r.f ? p.r.f.join('/') : p.r)).join('');
+const plain = parts => parts.map(p => typeof p === 'string' ? p : p.ov !== undefined ? p.ov + ' repeating' : p.tex !== undefined ? p.tex : p.f ? p.f.join('/') : p.sup !== undefined ? '^' + p.sup : (p.i ? p.i : '') + '√' + (p.r.f ? p.r.f.join('/') : p.r)).join('');
 const sorter = (items, trayXY) => (body, api) => {
   const L = qlayer();
   const bg = mk('rect', { width: 1600, height: 900, fill: 'transparent' }, L);
@@ -1436,7 +1606,7 @@ const sorter = (items, trayXY) => (body, api) => {
 };
 
 /* ---------- player ---------- */
-const P = { i: 0, t: 0, end: 1, playing: false, waiting: false, done: false, started: false, audio: null, afail: false, stall: 0, cleanup: [] };
+const P = { i: 0, t: 0, end: 1, playing: false, waiting: false, done: false, started: false, audio: null, afail: false, stall: 0, cleanup: [], rate: 1, nextClip: null };
 function runBeat(i) {
   TW = [];
   const b = BEATS[i], tm = TIMINGS[b.id];
@@ -1483,22 +1653,62 @@ function clearCards() {
 // Rebuild the scene from scratch and fast-forward every earlier beat, so any step starts from its exact picture.
 function seek(i, play = P.playing) {
   stopAudio(); clearCards(); reset();
-  for (let k = 0; k < i; k++) { runBeat(k); evalTo(Infinity); }
-  start(i, play);
+  seeking = true;
+  try {
+    for (let k = 0; k < i; k++) { runBeat(k); evalTo(Infinity); }
+    start(i, play);
+  } finally { seeking = false; }
+}
+// Jump to a point inside beat i (frac of its narration); question beats always start at their beginning.
+function seekInto(i, frac) {
+  seek(i, true);
+  const t = BEATS[i].ask ? 0 : frac * TIMINGS[BEATS[i].id].dur;
+  if (t < .3) return;
+  P.t = t;
+  evalTo(t);
+  if (P.audio) P.audio.currentTime = t;
 }
 function start(i, play) {
   stopAudio(); clearCards();
   Object.assign(P, { i, t: 0, waiting: false, done: false, afail: false, stall: 0 });
   P.end = runBeat(i);
   evalTo(0);
-  const a = P.audio = new Audio(`audio/${CHAPTER.language || 'en'}/${BEATS[i].id}.mp3`);
-  a.preload = 'auto';
-  a.volume = +$('volume').value;
-  a.onerror = () => { if (P.audio === a) soundFailed(); };
+  const a = P.audio = beatClip(i, true);
+  a.volume = +($('volume')?.value ?? 1);
+  a.playbackRate = P.rate;
+  // An aborted or superseded load (fast stepping, a reload) is not a failure: only a real error for the current clip
+  // shows the note, and the note goes away as soon as a clip plays.
+  a.onerror = () => { if (P.audio === a && a.error && a.error.code !== MediaError.MEDIA_ERR_ABORTED) soundFailed(); };
+  a.onplaying = () => {
+    if (P.audio !== a) return;
+    $('soundNote').hidden = true;
+    if (P.afail) { P.afail = false; a.currentTime = P.t; }   // sound came back late: rejoin the picture where it is
+  };
   const b = BEATS[i];
   if (b.ask) b.ask(() => { if (P.i === i) { evalTo(Infinity); start(i + 1, true); } });
   setPlaying(play);
+  if (i + 1 < BEATS.length) beatClip(i + 1);
 }
+// The next beat's clip starts loading while this one plays, so a slow connection does not stall between beats.
+function beatClip(i, take) {
+  const src = `audio/${CHAPTER.language || 'en'}/${BEATS[i].id}.mp3`;
+  let a = P.nextClip?._src === src ? P.nextClip : null;
+  if (!a) {
+    if (P.nextClip && P.nextClip !== P.audio) { P.nextClip.removeAttribute('src'); P.nextClip.load(); }   // abandon a stale preload
+    a = Object.assign(new Audio(src), { preload: 'auto', _src: src });
+  }
+  P.nextClip = take ? null : a;
+  return a;
+}
+// Playback speed: the audio clock drives the picture, so changing the clip's rate keeps them together.
+const SPEEDS = [.75, 1, 1.25, 1.5];
+function setSpeed(r) {
+  P.rate = r;
+  $('bSpeed').textContent = r + '×';
+  if (P.audio) P.audio.playbackRate = r;
+  try { localStorage.setItem('speed', String(r)); } catch {}
+}
+const stepSpeed = d => setSpeed(SPEEDS[Math.max(0, Math.min(SPEEDS.length - 1, SPEEDS.indexOf(P.rate) + d))]);
 function soundFailed() { P.afail = true; $('soundNote').hidden = false; }
 function setPlaying(v) {
   P.playing = v;
@@ -1525,8 +1735,8 @@ function frame(now) {
     // While the clip plays, its clock drives the picture; before it starts or after it ends, wall time does.
     if (a && !P.afail && !a.ended) {
       if (a.currentTime > 0) { P.t = Math.max(P.t, a.currentTime); P.stall = 0; }
-      else if ((P.stall += dt) > 4) soundFailed();
-    } else P.t += dt;
+      else if ((P.stall += dt) > (a.readyState < 2 ? 8 : 15)) soundFailed();   // nothing to play after 8 s, or stuck for 15
+    } else P.t += dt * P.rate;
     evalTo(P.t);
     if (P.t >= P.end) beatDone();
   }
@@ -1540,7 +1750,11 @@ function buildSegs() {
   s.style.flex = TIMINGS[b.id].dur + (b.ask ? 12 : 0);
   s.title = b.title;
   s.setAttribute('aria-label', `Go to step ${i + 1}: ${b.title}`);
-  s.onclick = () => { hideCover(); seek(i, true); };
+  // A click lands at that point of the step; keyboard activation (no pointer position) starts the step.
+  s.onclick = e => {
+    const r = s.getBoundingClientRect();
+    hideCover(); seekInto(i, e.detail ? (e.clientX - r.left) / r.width : 0);
+  };
   $('segs').append(s);
   return s.firstChild;
   });
@@ -1579,14 +1793,11 @@ $('stage').addEventListener('click', e => {
   if (!b.ask && !e.target.closest('.qlayer')) togglePlay();
 });
 $('bPlay').onclick = togglePlay;
-$('bVolume').onclick = () => $('volume').focus();
-$('volume').oninput = () => {
-  $('volume').style.setProperty('--volume', +$('volume').value * 100 + '%');
-  if (P.audio) P.audio.volume = +$('volume').value;
-};
 $('bBack').onclick = () => { hideCover(); back1(); };
 $('bRestart').onclick = restart;
 $('bCC').onclick = () => setCaptions(!captions);
+$('bSpeed').onclick = () => setSpeed(SPEEDS[(SPEEDS.indexOf(P.rate) + 1) % SPEEDS.length]);
+try { const r = +localStorage.getItem('speed'); if (SPEEDS.includes(r)) setSpeed(r); } catch {}
 $('bFull').onclick = () => toggleFull();
 const toggleFull = () => document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.();
 let helpResume = false;
@@ -1617,6 +1828,8 @@ document.addEventListener('keydown', e => {
   else if (k === 'ArrowRight' && free) { if (P.i < BEATS.length - 1) seek(P.i + 1); }
   else if (k === 'Home') restart();
   else if (k === 'c' || k === 'C') setCaptions(!captions);
+  else if (k === '<' || k === ',') stepSpeed(-1);
+  else if (k === '>' || k === '.') stepSpeed(1);
   else if (k === 'f' || k === 'F') toggleFull();
   else used = false;
   if (used) e.preventDefault();
@@ -1631,7 +1844,7 @@ fit();
 // Start the lesson once the chapter page has defined CHAPTER and BEATS.
 // ?beat=N&t=S opens a paused frame, for reviewing a single moment.
 // Per-book progress shared with the cover/contents at the parent URL folder.
-const BOOK_PROGRESS_KEY = 'animebook:progress:' + new URL('../', location.href).pathname;
+const BOOK_PROGRESS_KEY = bookSetting('--progress-key') || 'animebook:progress:' + new URL('../', location.href).pathname;
 function progress(f) {
   try {
     const saved = JSON.parse(localStorage.getItem(BOOK_PROGRESS_KEY) || '{}');
