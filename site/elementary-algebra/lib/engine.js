@@ -20,6 +20,7 @@ document.body.insertAdjacentHTML('afterbegin', `<div id="frame">
           <dt><kbd>Shift</kbd><kbd>←</kbd><kbd>→</kbd></dt><dd>Change step during a question</dd>
           <dt><kbd>Home</kbd></dt><dd>Start over</dd>
           <dt><kbd>C</kbd></dt><dd>Captions on or off</dd>
+          <dt><kbd>&lt;</kbd><kbd>&gt;</kbd></dt><dd>Slower or faster</dd>
           <dt><kbd>F</kbd></dt><dd>Full screen</dd>
           <dt><kbd>?</kbd></dt><dd>Show this list</dd>
         </dl></div>
@@ -60,6 +61,7 @@ document.body.insertAdjacentHTML('afterbegin', `<div id="frame">
     <div class="segs" id="segs"></div>
     <div class="step" id="stepName"></div>
     <button class="icon txt" id="bHelp" aria-label="Keyboard shortcuts (?)" title="Keyboard shortcuts (?)">?</button>
+    <button class="icon txt speed" id="bSpeed" aria-label="Playback speed (&lt; and &gt;)" title="Playback speed (&lt; and &gt;)">1×</button>
     <button class="icon cc" id="bCC" aria-pressed="false" aria-label="Captions (C)" title="Captions (C)">CC</button>
     <button class="icon" id="bFull" aria-label="Full screen">
       <svg viewBox="0 0 18 18"><path d="M1 1h6v2H3v4H1zM11 1h6v6h-2V3h-4zM1 11h2v4h4v2H1zM15 11h2v6h-6v-2h4z"/></svg>
@@ -1534,7 +1536,7 @@ const sorter = (items, trayXY) => (body, api) => {
 };
 
 /* ---------- player ---------- */
-const P = { i: 0, t: 0, end: 1, playing: false, waiting: false, done: false, started: false, audio: null, afail: false, stall: 0, cleanup: [] };
+const P = { i: 0, t: 0, end: 1, playing: false, waiting: false, done: false, started: false, audio: null, afail: false, stall: 0, cleanup: [], rate: 1, nextClip: null };
 function runBeat(i) {
   TW = [];
   const b = BEATS[i], tm = TIMINGS[b.id];
@@ -1587,14 +1589,23 @@ function seek(i, play = P.playing) {
     start(i, play);
   } finally { seeking = false; }
 }
+// Jump to a point inside beat i (frac of its narration); question beats always start at their beginning.
+function seekInto(i, frac) {
+  seek(i, true);
+  const t = BEATS[i].ask ? 0 : frac * TIMINGS[BEATS[i].id].dur;
+  if (t < .3) return;
+  P.t = t;
+  evalTo(t);
+  if (P.audio) P.audio.currentTime = t;
+}
 function start(i, play) {
   stopAudio(); clearCards();
   Object.assign(P, { i, t: 0, waiting: false, done: false, afail: false, stall: 0 });
   P.end = runBeat(i);
   evalTo(0);
-  const a = P.audio = new Audio(`audio/${CHAPTER.language || 'en'}/${BEATS[i].id}.mp3`);
-  a.preload = 'auto';
+  const a = P.audio = beatClip(i, true);
   a.volume = +($('volume')?.value ?? 1);
+  a.playbackRate = P.rate;
   // An aborted or superseded load (fast stepping, a reload) is not a failure: only a real error for the current clip
   // shows the note, and the note goes away as soon as a clip plays.
   a.onerror = () => { if (P.audio === a && a.error && a.error.code !== MediaError.MEDIA_ERR_ABORTED) soundFailed(); };
@@ -1606,7 +1617,28 @@ function start(i, play) {
   const b = BEATS[i];
   if (b.ask) b.ask(() => { if (P.i === i) { evalTo(Infinity); start(i + 1, true); } });
   setPlaying(play);
+  if (i + 1 < BEATS.length) beatClip(i + 1);
 }
+// The next beat's clip starts loading while this one plays, so a slow connection does not stall between beats.
+function beatClip(i, take) {
+  const src = `audio/${CHAPTER.language || 'en'}/${BEATS[i].id}.mp3`;
+  let a = P.nextClip?._src === src ? P.nextClip : null;
+  if (!a) {
+    if (P.nextClip && P.nextClip !== P.audio) { P.nextClip.removeAttribute('src'); P.nextClip.load(); }   // abandon a stale preload
+    a = Object.assign(new Audio(src), { preload: 'auto', _src: src });
+  }
+  P.nextClip = take ? null : a;
+  return a;
+}
+// Playback speed: the audio clock drives the picture, so changing the clip's rate keeps them together.
+const SPEEDS = [.75, 1, 1.25, 1.5];
+function setSpeed(r) {
+  P.rate = r;
+  $('bSpeed').textContent = r + '×';
+  if (P.audio) P.audio.playbackRate = r;
+  try { localStorage.setItem('speed', String(r)); } catch {}
+}
+const stepSpeed = d => setSpeed(SPEEDS[Math.max(0, Math.min(SPEEDS.length - 1, SPEEDS.indexOf(P.rate) + d))]);
 function soundFailed() { P.afail = true; $('soundNote').hidden = false; }
 function setPlaying(v) {
   P.playing = v;
@@ -1634,7 +1666,7 @@ function frame(now) {
     if (a && !P.afail && !a.ended) {
       if (a.currentTime > 0) { P.t = Math.max(P.t, a.currentTime); P.stall = 0; }
       else if ((P.stall += dt) > (a.readyState < 2 ? 8 : 15)) soundFailed();   // nothing to play after 8 s, or stuck for 15
-    } else P.t += dt;
+    } else P.t += dt * P.rate;
     evalTo(P.t);
     if (P.t >= P.end) beatDone();
   }
@@ -1648,7 +1680,11 @@ function buildSegs() {
   s.style.flex = TIMINGS[b.id].dur + (b.ask ? 12 : 0);
   s.title = b.title;
   s.setAttribute('aria-label', `Go to step ${i + 1}: ${b.title}`);
-  s.onclick = () => { hideCover(); seek(i, true); };
+  // A click lands at that point of the step; keyboard activation (no pointer position) starts the step.
+  s.onclick = e => {
+    const r = s.getBoundingClientRect();
+    hideCover(); seekInto(i, e.detail ? (e.clientX - r.left) / r.width : 0);
+  };
   $('segs').append(s);
   return s.firstChild;
   });
@@ -1690,6 +1726,8 @@ $('bPlay').onclick = togglePlay;
 $('bBack').onclick = () => { hideCover(); back1(); };
 $('bRestart').onclick = restart;
 $('bCC').onclick = () => setCaptions(!captions);
+$('bSpeed').onclick = () => setSpeed(SPEEDS[(SPEEDS.indexOf(P.rate) + 1) % SPEEDS.length]);
+try { const r = +localStorage.getItem('speed'); if (SPEEDS.includes(r)) setSpeed(r); } catch {}
 $('bFull').onclick = () => toggleFull();
 const toggleFull = () => document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.();
 let helpResume = false;
@@ -1720,6 +1758,8 @@ document.addEventListener('keydown', e => {
   else if (k === 'ArrowRight' && free) { if (P.i < BEATS.length - 1) seek(P.i + 1); }
   else if (k === 'Home') restart();
   else if (k === 'c' || k === 'C') setCaptions(!captions);
+  else if (k === '<' || k === ',') stepSpeed(-1);
+  else if (k === '>' || k === '.') stepSpeed(1);
   else if (k === 'f' || k === 'F') toggleFull();
   else used = false;
   if (used) e.preventDefault();

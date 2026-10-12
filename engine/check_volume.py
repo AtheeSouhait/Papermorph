@@ -84,7 +84,7 @@ async def check(browser, path):
         await volume(value)
         await page.locator("#bPlay").click()
         await page.wait_for_function("P.audio.currentTime > " + str(paused + .1))
-        await page.locator("#segs button").nth(1).click()
+        await page.locator("#segs button").nth(1).click(position={"x": 1, "y": 4})  # left end: the start of the step
         await page.wait_for_function("P.i === 1 && P.audio.currentTime > .1")
         assert await page.evaluate("P.audio.volume") == float(value)
         # Also cover automatic completion, not just manual seeking.
