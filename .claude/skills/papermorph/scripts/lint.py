@@ -112,7 +112,7 @@ def lint_chapter(ch, content, out):
             text, name = inline, 'chapter'
         else:
             f = (ch / src).resolve()
-            if f.suffix != '.js' or not f.exists() or f.name == 'timings.js':
+            if f.suffix != '.js' or not f.exists() or f.name in ('timings.js', 'mathjax.js'):   # MathJax declares no globals
                 continue
             text, name = f.read_text(encoding='utf-8'), f.name
         for ident, kind, line in decls(text):

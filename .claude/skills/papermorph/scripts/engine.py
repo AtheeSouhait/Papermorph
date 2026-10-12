@@ -6,18 +6,21 @@
     python3 engine.py site --check                 # report copies that differ; exit status 1 if any
     python3 engine.py site --from ../my-engine     # a local engine folder (a fork, or one being fixed)
     python3 engine.py site --from you/fork@v2      # engine/ of a GitHub repo at a tag, branch or commit
+    python3 engine.py site/stats --latex           # also MathJax, for a book whose chapters use TX()
 
 The engine is not part of this skill: it is the engine/ folder of a repository, versioned by tags, and anyone may
 fork it. Without --from, ./engine is used when it exists (a checkout of that repository), otherwise DEFAULT.
 Each book keeps a full copy in lib/, so it runs on its own; fix the engine at its source and sync, never edit the
 copies. lib/book.css holds the book's own settings and overrides; it is created from the default and never
-overwritten.
+overwritten. MathJax (engine/vendor/mathjax) goes only into books that ask for it with --latex; after that, a book
+with lib/mathjax.js keeps it in step like the rest.
 """
 import argparse, filecmp, io, shutil, sys, tarfile, tempfile, urllib.request
 from pathlib import Path
 
 DEFAULT = 'DozenTwelve/Papermorph@main'
 OWN = 'book.css'
+LATEX = {'vendor/mathjax/tex-svg-full.js': 'mathjax.js', 'vendor/mathjax/LICENSE': 'mathjax-LICENSE.txt'}
 
 
 def fetch(spec: str) -> Path:
@@ -31,8 +34,10 @@ def fetch(spec: str) -> Path:
     with tarfile.open(fileobj=io.BytesIO(data)) as tar:
         for m in tar.getmembers():
             parts = m.name.split('/')
-            if m.isfile() and len(parts) == 3 and parts[1] == 'engine':   # <repo>-<ref>/engine/<file>
-                (out / parts[2]).write_bytes(tar.extractfile(m).read())
+            if m.isfile() and len(parts) >= 3 and parts[1] == 'engine':   # <repo>-<ref>/engine/<path>
+                dst = out.joinpath(*parts[2:])
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                dst.write_bytes(tar.extractfile(m).read())
     if not (out / 'engine.js').exists():
         sys.exit(f'{spec} has no engine/engine.js')
     return out
@@ -63,14 +68,17 @@ def main():
     ap.add_argument('target', type=Path, help='a book folder, or a folder of books')
     ap.add_argument('--from', dest='src', metavar='DIR|OWNER/REPO@REF', help=f'engine source (default ./engine, else {DEFAULT})')
     ap.add_argument('--check', action='store_true', help='only report differing copies')
+    ap.add_argument('--latex', action='store_true', help='also copy MathJax, for TX() formulas')
     a = ap.parse_args()
     engine = source(a.src)
     shared = sorted(p for p in engine.iterdir() if p.suffix in ('.js', '.css') and p.name != OWN)
     stale = []
     for book in books(a.target):
         lib = book / 'lib'
-        for src in shared:
-            dst = lib / src.name
+        pairs = [(src, lib / src.name) for src in shared]
+        if a.latex or (lib / 'mathjax.js').exists():
+            pairs += [(engine / src, lib / dst) for src, dst in LATEX.items()]
+        for src, dst in pairs:
             if dst.exists() and filecmp.cmp(src, dst, shallow=False):
                 continue
             stale.append(dst)
