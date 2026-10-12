@@ -35,8 +35,9 @@ A chapter returns to its book's index. Preserve cover → contents → chapter n
 One page: no hash or `#book` shows the cover, `#contents` or `#chNN` the contents; a lesson's home button returns to `#chNN`, and the card grows into the lesson frame through a view transition.
 
 - Edit the title, kicker, lede, the faint chalk phrases on the cover (a few formulas or lines from the book), and the `<title>`.
-- `UNITS`: `[unit title, [[chapter title, minutes], …]]`; chapters are numbered in order from `START` (`{ unit: 1, chapter: 1 }`; a book whose scope starts mid-way, e.g. at unit 3, chapter 9, keeps the original numbers). Add a chapter when its lesson is ready; also set the previous chapter's `CHAPTER.next = '../chNN/'`.
-- `HUES`: one colour per unit, cycling.
+- The page's script calls `Contents.book({ start, units, hues })` (from the engine's `lib/contents.js`; the shared styles are `lib/contents.css`). `units`: `[unit title, [[chapter title, minutes], …]]`; chapters are numbered in order from `start` (`{ unit: 1, chapter: 1 }`; a book whose scope starts mid-way, e.g. at unit 3, chapter 9, keeps the original numbers). Add a chapter when its lesson is ready; also set the previous chapter's `CHAPTER.next = '../chNN/'`. An optional third entry `{ unit, chapter, sample: true }` renumbers a unit and marks it as a sample, left out of the chapter count.
+- `hues`: one colour per unit, cycling.
+- A book with its own look overrides the tokens of `lib/contents.css` (`--board`, `--chalk`, `--top-bg`, …) in a `<style>` after it, as the template's comment shows; don't copy the stylesheet into the page.
 
 ## Unit sketches (`unit-art.js`)
 
