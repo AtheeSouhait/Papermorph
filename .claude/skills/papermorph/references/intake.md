@@ -51,7 +51,7 @@ Start from [the template](../assets/templates/style.json). Blocks are grouped by
 | `schema`, `tier`, `book` | schema version; `1`, `2` or `"custom"`; title, slug, language, readers, pilot chapter | all |
 | `words` | the user's own words about the look, verbatim, with later feedback that changed the bar | all |
 | `look` | palette, what each colour means, text and maths fonts, notation and rounding | all |
-| `voice` | TTS engine (`edge`), voice, rate | all |
+| `voice` | TTS engine (`edge`, or `kokoro` when Edge is unavailable or local audio is wanted), voice, rate | all |
 | `pacing` | minutes per chapter, where checks and practice go | all |
 | `engine` | engine source and version used to build the book | all |
 | `scenes` | art style, cast, how storyboards are reviewed | tier 2 |

@@ -37,6 +37,7 @@ Before writing code, list the beats. For each lesson beat decide what the eye sh
 - Match the audience: plain, warm, never childish. Explain why, not only how.
 - Question beats get one short line ("Quick check. Find the mean."); the card holds the question.
 - `tts.py` writes `<beat>.mp3` and `timings.js` (duration, marks, captions) and caches each finished beat beside the narration JSON: moving `[[marks]]` reuses the cache, and after a failure the same command resumes rather than starting over.
+- Engine: `"engine": "edge"` (default, online) or `"kokoro"` (local, Apache 2.0; English word timings; voices such as `am_michael`, `af_heart`, `bm_george`), set at the top of the narration file with `voice` and `rate`. Keep one engine and voice per book.
 
 ## Questions
 
