@@ -2,9 +2,9 @@
 
 A chapter page loads the engine and its `audio/<lang>/timings.js`, defines `CHAPTER` (including `language` when different from `en`), drawing helpers, `BEATS` and questions, then calls `boot()`. The engine provides the stage, drawing, timeline, question types, guide and player. Use the code's signatures if they differ from this reference.
 
-Every book keeps a copy of the shared engine in `lib/` (`engine.*`, `volume.*`), so the book runs on its own. Change the engine in `assets/engine/`, then copy it to the books with `python3 SKILL/scripts/sync_engine.py site` (`--check` lists copies that differ); a book's copy is not edited by hand. The book's own settings and style overrides live in `lib/book.css`, imported by `engine.css` and never overwritten: `--math-font` for numbers and formulas, `--progress-key` when the cover uses a key other than the default.
+Every book keeps a copy of the shared engine in `lib/` (`engine.*`, `volume.*`), so the book runs on its own. The engine is not part of this skill: it lives in the `engine/` folder of the Papermorph repository (or a fork), versioned by tags. `python3 SKILL/scripts/engine.py site` copies it into every book (`--check` lists copies that differ, `--from DIR|OWNER/REPO@REF` picks the source); a book's copy is not edited by hand. An engine bug is fixed at the source, then synced. The book's own settings and style overrides live in `lib/book.css`, imported by `engine.css` and never overwritten: `--math-font` for numbers and formulas, `--progress-key` when the cover uses a key other than the default.
 
-Many helpers are mathematical because the first book was algebra. Use those that fit, implement new ones in the chapter as needed, and move what several chapters use into the book's own library file (`lib/<name>.js`), not into the engine copy.
+Many drawing helpers are mathematical because the first book was algebra. Use those that fit; draw the rest in the chapter, and move what several chapters use into the book's element library (`lib/<name>.js`, [assets.md](assets.md)) rather than into the engine copy.
 
 ## Stage and state
 
@@ -12,7 +12,7 @@ Many helpers are mathematical because the first book was algebra. Use those that
 - Every animated element carries a state object written to the DOM by `render()`: `x y` (translate), `s` (scale), `r` (rotate, degrees), `o` (opacity), `d` (stroke drawn, 0–1), `a_<attr>` (numeric attribute, e.g. `'a_stroke-width'`), `c_<attr>` (hex colour). Give a key a starting value before tweening it; an `a_`/`c_` key without one starts from the element's attribute.
 - Scale and rotation are about the element's own origin: draw around (0,0) and place with `x/y`.
 - `S` holds objects shared across beats (`S.panel`, `S.line`, …). `reset()` clears it, so anything a later beat needs must be stored on `S`.
-- Palette `COL`: `chalk dim faint task good bad board` plus six hues `nat whole int rat irr real`. Fonts: `UI` (text), `MATH` (serif unless the book's `--math-font` says otherwise).
+- Palette `COL`: `chalk dim faint task good bad board` plus six hues named `nat whole int rat irr real` (from the algebra book; give them the book's own meanings in `style.json` `look.meaning`, e.g. `const FORCE = COL.…`). Fonts: `UI` (text), `MATH` (serif unless the book's `--math-font` says otherwise).
 
 ## Drawing
 
@@ -71,6 +71,8 @@ Firefox repaints SVG on the main thread and is the slowest common browser for th
 - Large shapes under a big camera zoom or roll are expensive: a filled `<circle>` scaled 6× and rotating cost about 200 ms a frame in Firefox, while the same picture as one `<image>` cost about 3 ms. Prefer one image for a big detailed object (a planet, a map), and few elements over many small ones (merge cells into one path per colour, or use an image).
 - Write per-frame attributes and text only when they change (`render()` already skips unchanged transform and opacity). Old panels are set to `display: none` after their fade.
 - Pixel-art sprites: draw `<image>` with `style="image-rendering: pixelated"` at an integer scale, and pre-scale the file (nearest neighbour) so it stays crisp where the style is ignored.
+- Cross-fading two full-screen cameras costs a long frame: fade only the incoming one in over the outgoing one, then hide the old.
+- A question card's entrance after a busy scene can hitch; measure it with `perf.py`.
 
 ## Questions
 
@@ -78,7 +80,7 @@ Firefox repaints SVG on the main thread and is the slowest common browser for th
 quiz(position, [{ id: 'c-mean', prompt: ['Find the mean of ', $m('7, 3, 9'), '.'], build: blanks([...]) }, …], done, 'Quick check')
 ```
 
-- Positions: `BAND` (below a number line, y 686–886), `TOPR` (top right, ≤ 470 high), `RIGHT`, `SCREEN` (full-screen practice; label `'Chapter practice   N of M'`), `SORT_SCREEN`, or any `{x, y, w, cls: 'side'}`.
+- Positions: `BAND` (bottom band, y 686–886; long content can push it past the stage, so check it), `TOPR` (top right, ≤ 470 high), `RIGHT`, `SCREEN` (full-screen practice; label `'Chapter practice   N of M'`), `SORT_SCREEN`, or any `{x, y, w, cls: 'side'}`.
 - `choice(options, right, why, wrongWhys[], onRight?)` — number keys.
 - `blanks(rows)` — rows `{parts: [..., {box: '21'}, ...], why, hint?, fx?, test?}`; accepts −5, 3/4, 2 1/4, 0.75 as exact values; `{box, lowest: true}` demands lowest terms; `test(values)` judges the whole row (e.g. two factors in either order). Tab moves between boxes, Enter checks, Esc leaves a box.
 - `grid(rows, cols, {multi, text})` — rows `{parts, ans: [keys], why, fx?}`, cols `[[key, label, colour?, hotkey?]]`; with `text: true` parts are rich text (math via `$m`). ↑/↓ change rows.
