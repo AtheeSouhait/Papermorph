@@ -39,8 +39,18 @@ def at_base_ref(path):
     return result.stdout.decode("utf-8") if result.returncode == 0 else None
 
 
-ENGINE_FILES = ("engine.js", "engine.css", "volume.js", "volume.css", "book.css")
-BASE_FILES = {"book": at_base_ref(TEMPLATES / "book.html"), **{name: at_base_ref(ENGINE_DIR / name) for name in ENGINE_FILES}}
+ENGINE_FILES = ("engine.js", "engine.css", "volume.js", "volume.css", "book.css", "units.js", "units.css", "contents.js", "contents.css")
+
+
+def engine_at_base_ref(name):
+    """An engine file at BASE_REF; one added since then is taken from the working tree (the base template does not load it)."""
+    if not BASE_REF:
+        return None
+    path = ENGINE_DIR / name
+    return at_base_ref(path) or (path.read_text(encoding="utf-8") if path.exists() else "")
+
+
+BASE_FILES = {"book": at_base_ref(TEMPLATES / "book.html"), **{name: engine_at_base_ref(name) for name in ENGINE_FILES}}
 
 
 def with_language(html, language):
@@ -103,6 +113,7 @@ async def lesson_snapshot(page):
     shots.append(await page.evaluate("document.getElementById('ui').innerHTML"))
     await page.locator(".box").fill("6")
     await page.locator(".box").press("Enter")
+    await page.wait_for_timeout(200)   # the band card refits to the feedback on the next frame
     shots.append(await page.evaluate("document.getElementById('ui').innerHTML"))
     await page.evaluate("seek(BEATS.length - 1, false)")
     await page.wait_for_timeout(600)
@@ -111,7 +122,7 @@ async def lesson_snapshot(page):
 
 
 async def check_english_unchanged(browser, errors):
-    if not all(BASE_FILES.values()):
+    if BASE_FILES["book"] is None or None in BASE_FILES.values():
         print(f"SKIP English identity: engine or book template not found at BASE_REF={BASE_REF!r}")
         return
     before = await open_lesson(browser, "base", errors)

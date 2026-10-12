@@ -1323,32 +1323,28 @@ const choice = (opts, right, yes, no, onRight) => (body, api) => {
     key(e) { const b = bs[+e.key - 1]; if (!b || b.disabled) return false; b.click(); return true; },
   };
 };
-// Tap a point on the stage number line.
-const tap = (values, right, yes, no, onRight) => (body, api) => {
-  const L = qlayer(), hits = {};
-  let locked = false;
-  for (const v of values) {
-    const g = G(L, { x: X(v), y: Y0 });
+// The shared body of the stage tap questions: each target ring is a focusable button that answers on click or Enter,
+// and ← / → move the focus between them. targets: [{ g, label, ok, wrong }], wrong() shakes and returns the explanation.
+const stageTap = (api, targets, show, yes, onRight, hint) => {
+  let locked = false, cur = -1;
+  const gs = targets.map(({ g, label, ok, wrong }) => {
     g.classList.add('hit');
     g.setAttribute('tabindex', 0);
     g.setAttribute('role', 'button');
-    g.setAttribute('aria-label', translate('pointLabel', { v: num(v) }));
-    mk('circle', { r: 30, class: 'ring' }, g);
+    g.setAttribute('aria-label', label);
     const act = () => {
       if (locked) return;
-      if (v === right) { g.classList.add('good'); onRight?.(); api.grade(true, yes); }
-      else { g.classList.add('bad'); shakeFx(S.dots[v]); api.grade(false, no(v)); }
+      if (ok) { g.classList.add('good'); onRight?.(); api.grade(true, yes); }
+      else { g.classList.add('bad'); api.grade(false, wrong()); }
     };
     g.addEventListener('click', act);
     keyAct(g, act);
-    hits[v] = g;
-  }
-  const gs = values.map(v => hits[v]);
-  let cur = -1;
+    return g;
+  });
   return {
-    reveal() { hits[right].classList.add('good'); onRight?.(); return yes; },
+    reveal() { gs[show].classList.add('good'); onRight?.(); return yes; },
     lock() { locked = true; },
-    hint: [kbd('←'), kbd('→'), translate('hintMoveAlongLine'), kbd('Enter'), translate('hintChoose')],
+    hint,
     key(e) {
       const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
       if (!d || locked) return false;
@@ -1358,71 +1354,38 @@ const tap = (values, right, yes, no, onRight) => (body, api) => {
     },
   };
 };
+// Tap a point on the stage number line.
+const tap = (values, right, yes, no, onRight) => (body, api) => {
+  const L = qlayer();
+  const targets = values.map(v => {
+    const g = G(L, { x: X(v), y: Y0 });
+    mk('circle', { r: 30, class: 'ring' }, g);
+    return { g, label: translate('pointLabel', { v: num(v) }), ok: v === right, wrong: () => { shakeFx(S.dots[v]); return no(v); } };
+  });
+  return stageTap(api, targets, values.lastIndexOf(right), yes, onRight,
+    [kbd('←'), kbd('→'), translate('hintMoveAlongLine'), kbd('Enter'), translate('hintChoose')]);
+};
 // Tap one token of a stage token row, e.g. the operation to do first. idx: tappable token indexes.
 const tapEls = (row, idx, right, yes, no, onRight) => (body, api) => {
   const L = qlayer();
-  let locked = false, cur = -1;
-  const hits = idx.map(i => {
+  const targets = idx.map(i => {
     const e = row[i], w = e._w + 18, g = G(L, { x: e._px, y: row.y });
-    g.classList.add('hit');
-    g.setAttribute('tabindex', 0);
-    g.setAttribute('role', 'button');
-    g.setAttribute('aria-label', e.textContent.trim());
     mk('rect', { class: 'ring', x: -w / 2, y: -row.size * .95, width: w, height: row.size * 1.3, rx: 12 }, g);
-    const act = () => {
-      if (locked) return;
-      if (i === right) { g.classList.add('good'); onRight?.(); api.grade(true, yes); }
-      else { g.classList.add('bad'); shakeFx(e); api.grade(false, no(i)); }
-    };
-    g.addEventListener('click', act);
-    keyAct(g, act);
-    return g;
+    return { g, label: e.textContent.trim(), ok: i === right, wrong: () => { shakeFx(e); return no(i); } };
   });
-  return {
-    reveal() { hits[idx.indexOf(right)].classList.add('good'); onRight?.(); return yes; },
-    lock() { locked = true; },
-    hint: [kbd('←'), kbd('→'), translate('hintMove'), kbd('Enter'), translate('hintChoose')],
-    key(e) {
-      const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
-      if (!d || locked) return false;
-      cur = cur < 0 ? (d > 0 ? 0 : hits.length - 1) : (cur + d + hits.length) % hits.length;
-      hits[cur].focus();
-      return true;
-    },
-  };
+  return stageTap(api, targets, idx.indexOf(right), yes, onRight,
+    [kbd('←'), kbd('→'), translate('hintMove'), kbd('Enter'), translate('hintChoose')]);
 };
 // Click one of several stage objects (table cells, bars, small graphs). items: [{ el, box: [x, y, w, h], label }].
 const pickEls = (items, right, yes, no, onRight) => (body, api) => {
   const L = qlayer();
-  let locked = false, cur = -1;
-  const hits = items.map((it, i) => {
+  const targets = items.map((it, i) => {
     const [x, y, w, hh] = it.box, g = G(L);
-    g.classList.add('hit');
-    g.setAttribute('tabindex', 0);
-    g.setAttribute('role', 'button');
-    g.setAttribute('aria-label', it.label);
     mk('rect', { class: 'ring', x, y, width: w, height: hh, rx: 12 }, g);
-    const act = () => {
-      if (locked) return;
-      if (i === right) { g.classList.add('good'); onRight?.(); api.grade(true, yes); }
-      else { g.classList.add('bad'); shakeFx(it.el); api.grade(false, no(i)); }
-    };
-    g.addEventListener('click', act);
-    keyAct(g, act);
-    return g;
+    return { g, label: it.label, ok: i === right, wrong: () => { shakeFx(it.el); return no(i); } };
   });
-  return {
-    reveal() { hits[right].classList.add('good'); onRight?.(); return yes; },
-    lock() { locked = true; },
-    hint: [kbd('←'), kbd('→'), translate('hintMove'), kbd('Enter'), translate('hintChooseOrClick')],
-    key(e) {
-      const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
-      if (!d || locked) return false;
-      cur = cur < 0 ? (d > 0 ? 0 : hits.length - 1) : (cur + d + hits.length) % hits.length;
-      hits[cur].focus();
-      return true;
-    },
-  };
+  return stageTap(api, targets, right, yes, onRight,
+    [kbd('←'), kbd('→'), translate('hintMove'), kbd('Enter'), translate('hintChooseOrClick')]);
 };
 // Rows of toggles. items: { parts, ans: [keys], why }. parts are math parts (strings, F, R) unless text: true,
 // where they are rich text (strings and $m(...)). cols: [[key, label, colour?, shortcut?]]. multi: several per row.
@@ -1647,6 +1610,13 @@ const sorter = (items, trayXY) => (body, api) => {
       drag = null;
       if (moved) place(c, st(c).x, st(c).y); else select(c);
     });
+    // A cancelled drag (a system gesture, a lost capture) drops the chip where it is instead of leaving it stuck to no pointer.
+    c.addEventListener('lostpointercapture', () => {
+      if (!drag) return;
+      const moved = drag.moved;
+      drag = null;
+      if (moved) place(c, st(c).x, st(c).y);
+    });
     keyAct(c, () => { if (!locked) select(c); });
     return c;
   });
@@ -1857,11 +1827,16 @@ function buildSegs() {
   return s.firstChild;
   });
 }
+// ui() runs on every frame, paused or not: it writes only what changed, so an idle lesson does no layout work.
+let stepText = '';
+const setWidth = (f, w) => { if (f._w !== w) { f._w = w; f.style.width = w + '%'; } };
 function ui() {
-  segs.forEach((f, k) => { f.style.width = (k < P.i || P.done ? 100 : k > P.i ? 0 : Math.min(100, P.t / P.end * 100)) + '%'; });
-  $('frame').classList.toggle('is-playing', P.playing && !P.done && !P.waiting);
-  $('frame').classList.toggle('paused', P.started && !P.playing && !P.waiting && !P.done && !BEATS[P.i].ask);
-  $('stepName').textContent = `${P.i + 1} / ${BEATS.length}   ${BEATS[P.i].title}`;
+  segs.forEach((f, k) => setWidth(f, k < P.i || P.done ? 100 : k > P.i ? 0 : Math.min(100, P.t / P.end * 100)));
+  const fr = $('frame');
+  fr.classList.toggle('is-playing', P.playing && !P.done && !P.waiting);
+  fr.classList.toggle('paused', P.started && !P.playing && !P.waiting && !P.done && !BEATS[P.i].ask);
+  const step = `${P.i + 1} / ${BEATS.length}   ${BEATS[P.i].title}`;
+  if (step !== stepText) { stepText = step; $('stepName').textContent = step; }
   const b = BEATS[P.i];
   let text = '';
   if (captions && P.started && !b.ask && !P.done) {

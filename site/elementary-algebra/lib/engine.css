@@ -93,7 +93,7 @@ button[hidden] { display: none; }
 .hit:hover .ring, .hit:focus .ring { stroke-opacity: .7; }
 .hit.bad .ring { stroke: var(--bad); stroke-opacity: 1; }
 .hit.good .ring { stroke: var(--good); stroke-opacity: 1; stroke-width: 4; }
-.tok { cursor: grab; }
+.tok { cursor: grab; touch-action: none; }   /* a finger drags the chip instead of scrolling the page */
 
 /* Controls strip, part of the frame. */
 #bar { position: absolute; left: 0; top: 900px; width: 1600px; height: 60px; display: flex; align-items: center; gap: 10px; padding: 0 20px; background: #16211d; border-top: 1px solid #2a3b35; }
