@@ -10,6 +10,10 @@ uv run --with playwright --with pillow SKILL/scripts/strip.py chNN OUT --url htt
 
 A strip shows one beat at small steps; `@w` adds a motion WebP. Look at each action as a viewer would: do actors perform what the narration says, do props stay on the hands, does the camera move with purpose, does each frame still match the storyboard, do arrows, labels and readouts agree with the motion? Then watch a few beats live in Firefox with sound, which is how the user watches.
 
+## Static checks first
+
+`python3 SKILL/scripts/lint.py site/<book> chNN` takes a second and needs no browser: a global name that clashes with the engine or a library (which stops the page script), beats without timings or MP3, marks the code waits for that the narration lacks, narration edited since `tts.py` ran, and a malformed `style.json`. Run it after every edit, before the passes below.
+
 ## Frames and openings
 
 ```sh

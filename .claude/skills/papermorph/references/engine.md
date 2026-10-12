@@ -91,7 +91,7 @@ quiz(position, [{ id: 'c-mean', prompt: ['Find the mean of ', $m('7, 3, 9'), '.'
 
 ## Player
 
-Space play/pause, ←/→ previous/next beat (Shift+←/→ during a question), Home restart, C captions, F full screen, ? help. `seek(i, play)` rebuilds and jumps; `start(i, play)` begins a beat from the current picture. While audio plays, the beat clock follows `audio.currentTime`. `?beat=N&t=S` in the URL opens a frozen frame for review. The finish card's Enter opens `CHAPTER.next`, R replays.
+Space play/pause, ←/→ previous/next beat (Shift+←/→ during a question), Home restart, C captions, `<`/`>` speed (0.75–1.5×, remembered), F full screen, ? help. Clicking a step segment jumps to that point of the beat (`seekInto(i, frac)`); the next beat's clip preloads while one plays. `seek(i, play)` rebuilds and jumps; `start(i, play)` begins a beat from the current picture. While audio plays, the beat clock follows `audio.currentTime`. `?beat=N&t=S` in the URL opens a frozen frame for review. The finish card's Enter opens `CHAPTER.next`, R replays.
 
 Progress uses the stable legacy key `animebook:progress:<book-path>` (keep it when renaming the project so existing readers retain their progress); the cover template reads the same key. A book can set another key with `--progress-key` in `lib/book.css`; its cover must then read that key. Books served in different folders have separate saved places and completion lists.
 
@@ -103,7 +103,7 @@ Keep `<link rel="expect" href="#bar" blocking="render">` in every chapter's head
 
 - `M()` italicises 1–2 letter lowercase runs (variables) and runs of capitals, but keeps common short English words upright (by, my, an, if, in, is, of, or, …; capitalised: By, If, In, …). In maths write `b​y`, `m​y`, `a​n`, `B​y` to keep them italic. Units inside `M()` turn italic too: write them as words in `T()` text ("meters"). Never put an English sentence in `M()`.
 - Prompts, `grid` text rows and `choice` options are HTML: plain strings render as text, so wrap math in `$m(...)`.
-- Prefix chapter-specific helpers when their names might collide with engine globals (`rect`, `popIn`, `eqLine`, `fit`, `slot`, `Y0`, `OV`, `camera`, `soft`, `clockRun`, `retire`, `seeking`, `BOOK`, `bookSetting`, …); a redeclaration stops the page script.
+- Prefix chapter-specific helpers when their names might collide with engine globals (`rect`, `popIn`, `eqLine`, `fit`, `slot`, `Y0`, `OV`, `camera`, `soft`, `clockRun`, `retire`, `seeking`, `BOOK`, `bookSetting`, …); a redeclaration stops the page script. `lint.py` lists every clash.
 - Drag handling: re-parent (append) the element before `setPointerCapture`; moving a node drops its capture.
 - A card whose content is too long for `BAND` should become several `blanks` rows in a wider side card.
 - When a question beat is continued early, the engine finishes the beat's pending tweens first; don't rely on half-finished fades.
