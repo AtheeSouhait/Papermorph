@@ -123,6 +123,8 @@ def at_base_ref(path):
 
 
 BASE_ENGINE = at_base_ref(ENGINE)
+LIB = ("engine.css", "volume.js", "volume.css", "book.css")
+BASE_LIB = {name: at_base_ref(ENGINE_DIR / name) for name in LIB}
 PAGES = {"base": TEMPLATE.read_text(encoding="utf-8"), "plain": TEMPLATE.read_text(encoding="utf-8"),
          "tex": TEST_CHAPTER, "typo": TYPO_PAGE, "nomathjax": NO_MATHJAX_PAGE}
 
@@ -136,8 +138,13 @@ async def answer(route):
             await route.fulfill(content_type="text/javascript", body=BASE_ENGINE)
         else:
             await route.fulfill(path=ENGINE)
-    elif rest in ("lib/engine.css", "lib/volume.js", "lib/volume.css", "lib/book.css"):
-        await route.fulfill(path=ENGINE_DIR / rest[4:])
+    elif rest.startswith("lib/") and rest[4:] in LIB:
+        name = rest[4:]
+        if variant == "base" and BASE_LIB[name] is not None:
+            kind = "text/javascript" if name.endswith(".js") else "text/css"
+            await route.fulfill(content_type=kind, body=BASE_LIB[name])
+        else:
+            await route.fulfill(path=ENGINE_DIR / name)
     elif rest == "lib/mathjax.js":
         await route.fulfill(path=MATHJAX)
     elif rest.endswith("timings.js"):
