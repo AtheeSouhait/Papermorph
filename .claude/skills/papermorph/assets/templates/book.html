@@ -215,8 +215,10 @@ main#contents { padding-bottom: 80px; }
 
 <script>
 'use strict';
-// Chapters are numbered in order through the units. Add a chapter here when its lesson is ready.
-const UNITS = [   // [unit title, [[chapter title, minutes], ...]]; chapters are numbered in order. Add a chapter when its lesson is ready.
+// Units and chapters are numbered in order from START (a book whose scope starts mid-way keeps the original numbers).
+// Add a chapter here when its lesson is ready.
+const START = { unit: 1, chapter: 1 };
+const UNITS = [   // [unit title, [[chapter title, minutes], ...]]
   ['First unit', [['First chapter', 8]]],
 ];
 const HUES = ['#f4a48c', '#86c9e8', '#f3c95c', '#e8a0c8', '#8fd6b0', '#bba8ee', '#f0b45a'];
@@ -230,22 +232,22 @@ try {
 const done = new Set(Array.isArray(P.done) ? P.done.filter(n => Number.isInteger(n) && n > 0) : []);
 
 // Contents.
-let n = 0, total = 0, i = 0;   // i staggers the entrance, in reading order
+let n = START.chapter - 1, total = 0, i = 0;   // i staggers the entrance, in reading order
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 document.getElementById('units').innerHTML = UNITS.map(([name, chs], u) => {
-  return `<section class="unit" style="--c:${HUES[u % HUES.length]};--i:${i++}"><svg class="unit-art" viewBox="0 0 600 180" aria-hidden="true">${UNIT_ART[u] || ''}</svg><h2><span>Unit ${u + 1}</span>${esc(name)}</h2><div class="grid">` +
-    chs.map(([t, min]) => { n++;
+  return `<section class="unit" style="--c:${HUES[u % HUES.length]};--i:${i++}"><svg class="unit-art" viewBox="0 0 600 180" aria-hidden="true">${UNIT_ART[u] || ''}</svg><h2><span>Unit ${u + START.unit}</span>${esc(name)}</h2><div class="grid">` +
+    chs.map(([t, min]) => { n++; total++;
       const cls = 'ch' + (done.has(n) ? ' done' : '') + (P.last === n ? ' last' : '');
       return `<a class="${cls}" id="${id(n)}" href="${id(n)}/" style="--i:${i++}"><b>${n}</b><span>${esc(t)}</span><small>${min} min</small></a>`;
     }).join('') + '</div></section>';
 }).join('');
-total = n;
 // A unit's sketch draws itself the first time the unit scrolls into view.
 const seen = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('seen'); seen.unobserve(e.target); } }), { threshold: .25 });
 document.querySelectorAll('.unit').forEach(u => seen.observe(u));
-const finished = [...done].filter(k => k <= total).length;
+const finished = [...done].filter(k => k >= START.chapter && k <= n).length;
 document.getElementById('prog').innerHTML = finished ? `<b>${finished}</b> of ${total} finished` : `${total} chapter${total === 1 ? '' : 's'}`;
-document.getElementById('meta').textContent = `${total} chapters · ${UNITS.length} units · with sound`;
+const pl = (k, w) => `${k} ${w}${k === 1 ? '' : 's'}`;
+document.getElementById('meta').textContent = `${pl(total, 'chapter')} · ${pl(UNITS.length, 'unit')} · with sound`;
 const last = Number.isInteger(P.last) && document.getElementById(id(P.last));
 if (last) {
   const r = document.getElementById('resume');
